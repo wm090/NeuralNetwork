@@ -187,6 +187,77 @@ public class NeuralNetwork {
         }
     }
 
+    /**
+     * Test the neural network on the training data and print results
+     * @param testData The data to test on
+     * @return The accuracy percentage (0-100)
+     */
+    public double testNetwork(List<TrainingData> testData) {
+        // Counter for correct predictions
+        int correct = 0;
+
+        // Test each example
+        for (TrainingData data : testData) {
+            // Get the inputs (RGB values)
+            double[] inputs = data.getInputs();
+
+            // Get the expected outputs (correct traffic light class)
+            double[] expectedOutputs = data.getExpectedOutputs();
+
+            // Get the network's prediction
+            double[] actualOutputs = forward(inputs);
+
+            // Find which class has the highest value (the network's prediction)
+            int expectedClass = findMaxIndex(expectedOutputs);
+            int actualClass = findMaxIndex(actualOutputs);
+
+            // Print the result
+            System.out.print("Input (RGB): ");
+            for (double input : inputs) {
+                System.out.printf("%.2f ", input);
+            }
+            System.out.print("| Expected: " + expectedClass + " | Actual: " + actualClass);
+
+            // Check if the prediction was correct
+            if (expectedClass == actualClass) {
+                System.out.println(" ✓");  // Correct
+                correct++;
+            } else {
+                System.out.println(" ✗");  // Wrong
+            }
+        }
+
+        // Calculate and print the accuracy
+        double accuracy = (double) correct / testData.size() * 100;
+        System.out.printf("Accuracy: %.2f%% (%d/%d)\n", accuracy, correct, testData.size());
+
+        return accuracy;
+    }
+
+    /**
+     * Find the index of the maximum value in an array
+     * This helps us determine which class the network predicted
+     * @param array The array to search
+     * @return The index of the maximum value
+     */
+    public int findMaxIndex(double[] array) {
+        // Start with the first element
+        int maxIndex = 0;
+        double maxValue = array[0];
+
+        // Check each element
+        for (int i = 1; i < array.length; i++) {
+            // If this element is bigger, remember it
+            if (array[i] > maxValue) {
+                maxValue = array[i];
+                maxIndex = i;
+            }
+        }
+
+        // Return the index of the biggest value
+        return maxIndex;
+    }
+
     @Override
     public String toString() {
         return "NeuralNetwork [inputLayer=" + Arrays.toString(inputLayer) + ", hiddenLayer="

@@ -42,7 +42,7 @@ public class Main {
 
         // ===== STEP 5: Test the network before training =====
         System.out.println("\nTesting network BEFORE training:");
-        testNetwork(nn, trainingData);
+        nn.testNetwork(trainingData);
 
         // ===== STEP 6: Train the network =====
         System.out.println("\nTraining the network...");
@@ -51,7 +51,7 @@ public class Main {
 
         // ===== STEP 7: Test the network after training =====
         System.out.println("\nTesting network AFTER training:");
-        testNetwork(nn, trainingData);
+        nn.testNetwork(trainingData);
 
         // ===== STEP 8: Save the trained weights =====
         System.out.println("\nSaving trained weights to " + outputWeightsFile);
@@ -70,79 +70,8 @@ public class Main {
         double[] data = { 1.0, 0.5 };
         NeuralNetwork nn2 = new NeuralNetwork(data.length, 2, 1);
         nn2.setWeights(hiddenWeights, outputWeights);
-      
+
         double [] output = nn2.forward(data);
         System.out.println(output[0]);
     }
-    
-
-    /**
-     * Test the neural network on the training data and print results
-     * @param nn The neural network to test
-     * @param testData The data to test on
-     */
-    private static void testNetwork(NeuralNetwork nn, List<TrainingData> testData) {
-        // Counter for correct predictions
-        int correct = 0;
-
-        // Test each example
-        for (TrainingData data : testData) {
-            // Get the inputs (RGB values)
-            double[] inputs = data.getInputs();
-
-            // Get the expected outputs (correct traffic light class)
-            double[] expectedOutputs = data.getExpectedOutputs();
-
-            // Get the network's prediction
-            double[] actualOutputs = nn.forward(inputs);
-
-            // Find which class has the highest value (the network's prediction)
-            int expectedClass = findMaxIndex(expectedOutputs);
-            int actualClass = findMaxIndex(actualOutputs);
-
-            // Print the result
-            System.out.print("Input (RGB): ");
-            for (double input : inputs) {
-                System.out.printf("%.2f ", input);
-            }
-            System.out.print("| Expected: " + expectedClass + " | Actual: " + actualClass);
-
-            // Check if the prediction was correct
-            if (expectedClass == actualClass) {
-                System.out.println(" ✓");  // Correct
-                correct++;
-            } else {
-                System.out.println(" ✗");  // Wrong
-            }
-        }
-
-        // Calculate and print the accuracy
-        double accuracy = (double) correct / testData.size() * 100;
-        System.out.printf("Accuracy: %.2f%% (%d/%d)\n", accuracy, correct, testData.size());
-    }
-
-    /**
-     * Find the index of the maximum value in an array
-     * This helps us determine which class the network predicted
-     * @param array The array to search
-     * @return The index of the maximum value
-     */
-    private static int findMaxIndex(double[] array) {
-        // Start with the first element
-        int maxIndex = 0;
-        double maxValue = array[0];
-
-        // Check each element
-        for (int i = 1; i < array.length; i++) {
-            // If this element is bigger, remember it
-            if (array[i] > maxValue) {
-                maxValue = array[i];
-                maxIndex = i;
-            }
-        }
-
-        // Return the index of the biggest value
-        return maxIndex;
-    }
-
 }
