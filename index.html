@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Network Visualizer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Neural Network Visualizer</h1>
+        <form id="network-form">
+            <label>Input Neurons: <input type="number" id="input-neurons" min="1" value="2"></label>
+            <label>Hidden Neurons: <input type="number" id="hidden-neurons" min="1" value="2"></label>
+            <label>Output Neurons: <input type="number" id="output-neurons" min="1" value="1"></label>
+            <button type="button" id="build-network">Build Network</button>
+        </form>
+        <div id="input-section" style="display:none;">
+            <h2>Input Data</h2>
+            <div id="input-fields"></div>
+            <button type="button" id="run-forward">Run Forward Pass</button>
+        </div>
+        <div id="weights-section" style="display:none;">
+            <h2>Weights</h2>
+            <div id="weights-fields"></div>
+            <button type="button" id="randomize-weights">Randomize Weights</button>
+        </div>
+        <div id="manual-weights-section" style="display:none;">
+            <h2>Set Weights Manually</h2>
+            <div>
+                <label for="manual-hidden-weights">Hidden Weights (e.g. [[0.5,0.3,0.2],[0.3,0.2,-0.5]]):</label><br>
+                <textarea id="manual-hidden-weights" rows="2" cols="50"></textarea>
+            </div>
+            <div>
+                <label for="manual-output-weights">Output Weights (e.g. [[0.9,0.2,-0.8]]):</label><br>
+                <textarea id="manual-output-weights" rows="2" cols="50"></textarea>
+            </div>
+            <button type="button" id="apply-manual-weights">Apply Weights</button>
+            <div style="font-size:0.95em;color:#888;margin-top:6px;">Format: JavaScript/JSON array of arrays, e.g. <code>[[0.5,0.3,0.2],[0.3,0.2,-0.5]]</code></div>
+        </div>
+        <div id="visualization"></div>
+        <div id="output-section" style="display:none;">
+            <h2>Output</h2>
+            <div id="output-values"></div>
+        </div>
+    </div>
+    <script src="network.js"></script>
+</body>
+</html>
