@@ -10,11 +10,31 @@
     <div class="container">
         <h1>Neural Network Visualizer</h1>
         <form id="network-form">
-            <label>Input Neurons: <input type="number" id="input-neurons" min="1" value="2"></label>
-            <label>Hidden Neurons: <input type="number" id="hidden-neurons" min="1" value="2"></label>
-            <label>Output Neurons: <input type="number" id="output-neurons" min="1" value="1"></label>
+            <label>Input Neurons: <input type="number" id="input-neurons" min="1" value="2" required></label>
+            <label>Hidden Neurons: <input type="number" id="hidden-neurons" min="1" value="2" required></label>
+            <label>Output Neurons: <input type="number" id="output-neurons" min="1" value="1" required></label>
             <button type="button" id="build-network">Build Network</button>
         </form>
+        <div id="file-upload-section">
+            <h2>Upload Training Data and Weights</h2>
+            <div class="upload-container">
+                <div>
+                    <label for="training-data-file">Training Data CSV:</label>
+                    <input type="file" id="training-data-file" accept=".csv">
+                </div>
+                <div>
+                    <label for="weights-file">Weights CSV:</label>
+                    <input type="file" id="weights-file" accept=".csv">
+                </div>
+                <button type="button" id="process-files">Process Files</button>
+            </div>
+            <div id="processing-results" style="display:none;">
+                <h3>Processing Results</h3>
+                <div id="results-content"></div>
+                <button type="button" id="run-training" style="display:none;">Run Training</button>
+            </div>
+        </div>
+
         <div id="input-section" style="display:none;">
             <h2>Input Data</h2>
             <div id="input-fields"></div>
