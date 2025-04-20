@@ -6,7 +6,7 @@ public class NeuralNetwork {
     Neuron[] inputLayer;
     Neuron[] hiddenLayer;
     Neuron[] outputLayer;
-    
+
     // Store the last activations for backpropagation
     private double[] lastInputs;
     private double[] lastHiddenOutputs;
@@ -242,10 +242,10 @@ public class NeuralNetwork {
 
             // Check if the prediction was correct
             if (expectedClass == actualClass) {
-                System.out.println(" ✓"); // Correct
+                System.out.println(" correct"); // Correct
                 correct++;
             } else {
-                System.out.println(" ✗"); // Wrong
+                System.out.println(" wrong"); // Wrong
             }
         }
 
