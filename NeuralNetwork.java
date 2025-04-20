@@ -6,13 +6,29 @@ public class NeuralNetwork {
     Neuron[] inputLayer;
     Neuron[] hiddenLayer;
     Neuron[] outputLayer;
-
+    
     // Store the last activations for backpropagation
     private double[] lastInputs;
     private double[] lastHiddenOutputs;
     private double[] lastOutputs;
 
-    public NeuralNetwork(int numInputs, int numHidden, int numOutputs) {
+    public NeuralNetwork(int numInputs, Integer numHidden, int numOutputs) {
+        // Check for null values first
+        if (numHidden == null) {
+            throw new IllegalArgumentException("Number of hidden neurons cannot be null");
+        }
+
+        // Validate network architecture
+        if (numInputs <= 0) {
+            throw new IllegalArgumentException("Network must have at least one input neuron");
+        }
+        if (numHidden <= 0) {
+            throw new IllegalArgumentException("Network must have at least one hidden neuron");
+        }
+        if (numOutputs <= 0) {
+            throw new IllegalArgumentException("Network must have at least one output neuron");
+        }
+
         inputLayer = new Neuron[numInputs];
         hiddenLayer = new Neuron[numHidden];
         outputLayer = new Neuron[numOutputs];
@@ -28,7 +44,7 @@ public class NeuralNetwork {
         }
     }
 
-	public double[] forward(double[] data) {
+    public double[] forward(double[] data) {
         // Store inputs for backpropagation
         this.lastInputs = Arrays.copyOf(data, data.length);
 
@@ -51,7 +67,7 @@ public class NeuralNetwork {
         this.lastOutputs = Arrays.copyOf(outputOutputs, outputOutputs.length);
 
         return outputOutputs;
-	}
+    }
 
     public void setWeights(double[][] hiddenWeights, double[][] outputWeights) {
         // Set weights for hidden layer
@@ -74,6 +90,7 @@ public class NeuralNetwork {
 
     /**
      * Get the current weights of the network
+     * 
      * @return Array containing hidden and output layer weights
      */
     public double[][][] getWeights() {
@@ -92,9 +109,12 @@ public class NeuralNetwork {
 
     /**
      * Train the neural network using backpropagation
+     * 
      * @param trainingData List of training data
-     * @param learningRate Learning rate for weight updates (how fast the network learns)
-     * @param epochs Number of training epochs (how many times to go through all examples)
+     * @param learningRate Learning rate for weight updates (how fast the network
+     *                     learns)
+     * @param epochs       Number of training epochs (how many times to go through
+     *                     all examples)
      */
     public void train(List<TrainingData> trainingData, double learningRate, int epochs) {
         System.out.println("Starting training for " + epochs + " epochs...");
@@ -106,9 +126,9 @@ public class NeuralNetwork {
             // Go through each training example
             for (TrainingData data : trainingData) {
                 // Step 1: Forward pass - get the network's prediction
-                double[] inputs = data.getInputs();                // RGB values
+                double[] inputs = data.getInputs(); // RGB values
                 double[] expectedOutputs = data.getExpectedOutputs(); // Correct traffic light class
-                double[] actualOutputs = forward(inputs);          // Network's prediction
+                double[] actualOutputs = forward(inputs); // Network's prediction
 
                 // Step 2: Calculate how wrong the prediction was (error)
                 double error = 0;
@@ -134,8 +154,9 @@ public class NeuralNetwork {
     /**
      * Backpropagation algorithm to update weights
      * This is how the network learns from its mistakes
+     * 
      * @param expectedOutputs Expected output values
-     * @param learningRate Learning rate for weight updates
+     * @param learningRate    Learning rate for weight updates
      */
     private void backpropagate(double[] expectedOutputs, double learningRate) {
         // STEP 1: Calculate errors in the output layer
@@ -189,6 +210,7 @@ public class NeuralNetwork {
 
     /**
      * Test the neural network on the training data and print results
+     * 
      * @param testData The data to test on
      * @return The accuracy percentage (0-100)
      */
@@ -220,10 +242,10 @@ public class NeuralNetwork {
 
             // Check if the prediction was correct
             if (expectedClass == actualClass) {
-                System.out.println(" ✓");  // Correct
+                System.out.println(" ✓"); // Correct
                 correct++;
             } else {
-                System.out.println(" ✗");  // Wrong
+                System.out.println(" ✗"); // Wrong
             }
         }
 
@@ -237,6 +259,7 @@ public class NeuralNetwork {
     /**
      * Find the index of the maximum value in an array
      * This helps us determine which class the network predicted
+     * 
      * @param array The array to search
      * @return The index of the maximum value
      */

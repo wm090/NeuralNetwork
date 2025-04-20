@@ -60,6 +60,7 @@ public class Main {
 
         System.out.println("\nDone!");
 
+        System.out.println("-----------------------------");
         double [][]hiddenWeights = {
             { 0.5, 0.3, 0.2 },
             { 0.3, 0.2, -0.5 }
@@ -69,6 +70,11 @@ public class Main {
         };
         double[] data = { 1.0, 0.5 };
         NeuralNetwork nn2 = new NeuralNetwork(data.length, 2, 1);
+        NeuralNetwork nn3 = new NeuralNetwork(data.length, 2, 2);
+        NeuralNetwork nn4 = new NeuralNetwork(data.length, 5, 1);
+        //NeuralNetwork nn5 = new NeuralNetwork(data.length, 0, 1);
+        //NeuralNetwork nn6 = new NeuralNetwork(data.length, null, 1);
+
         nn2.setWeights(hiddenWeights, outputWeights);
 
         double [] output = nn2.forward(data);
