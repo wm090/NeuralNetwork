@@ -33,8 +33,9 @@ public class NeuralNetwork {
         hiddenLayer = new Neuron[numHidden];
         outputLayer = new Neuron[numOutputs];
 
+        // Create input neurons (no weights, just pass-through values)
         for (int i = 0; i < numInputs; i++) {
-            inputLayer[i] = new Neuron(numInputs); // or new Neuron(1) if input neurons don't need weights
+            inputLayer[i] = new Neuron(); // Use the no-arg constructor for input neurons
         }
         for (int i = 0; i < numHidden; i++) {
             hiddenLayer[i] = new Neuron(numInputs);
@@ -48,10 +49,21 @@ public class NeuralNetwork {
         // Store inputs for backpropagation
         this.lastInputs = Arrays.copyOf(data, data.length);
 
-        // Step 1: Compute hidden layer activations
+        // Step 1: Set values for input neurons
+        for (int i = 0; i < inputLayer.length; i++) {
+            inputLayer[i].setValue(data[i]);
+        }
+
+        // Step 2: Get values from input neurons
+        double[] inputValues = new double[inputLayer.length];
+        for (int i = 0; i < inputLayer.length; i++) {
+            inputValues[i] = inputLayer[i].getValue();
+        }
+
+        // Step 3: Compute hidden layer activations
         double[] hiddenOutputs = new double[hiddenLayer.length];
         for (int i = 0; i < hiddenLayer.length; i++) {
-            hiddenOutputs[i] = hiddenLayer[i].activate(data);
+            hiddenOutputs[i] = hiddenLayer[i].activate(inputValues);
         }
 
         // Store hidden outputs for backpropagation
@@ -90,7 +102,7 @@ public class NeuralNetwork {
 
     /**
      * Get the current weights of the network
-     * 
+     *
      * @return Array containing hidden and output layer weights
      */
     public double[][][] getWeights() {
@@ -109,7 +121,7 @@ public class NeuralNetwork {
 
     /**
      * Train the neural network using backpropagation
-     * 
+     *
      * @param trainingData List of training data
      * @param learningRate Learning rate for weight updates (how fast the network
      *                     learns)
@@ -154,7 +166,7 @@ public class NeuralNetwork {
     /**
      * Backpropagation algorithm to update weights
      * This is how the network learns from its mistakes
-     * 
+     *
      * @param expectedOutputs Expected output values
      * @param learningRate    Learning rate for weight updates
      */
@@ -201,6 +213,7 @@ public class NeuralNetwork {
         for (int i = 0; i < hiddenLayer.length; i++) {
             for (int j = 0; j < hiddenLayer[i].weights.length - 1; j++) {
                 // Update each weight: weight += learning_rate * delta * input
+                // Use the stored lastInputs since that's what we used in the forward pass
                 hiddenLayer[i].weights[j] += learningRate * hiddenDeltas[i] * lastInputs[j];
             }
             // Update bias weight (the extra weight)
@@ -210,7 +223,7 @@ public class NeuralNetwork {
 
     /**
      * Test the neural network on the training data and print results
-     * 
+     *
      * @param testData The data to test on
      * @return The accuracy percentage (0-100)
      */
@@ -259,7 +272,7 @@ public class NeuralNetwork {
     /**
      * Find the index of the maximum value in an array
      * This helps us determine which class the network predicted
-     * 
+     *
      * @param array The array to search
      * @return The index of the maximum value
      */
