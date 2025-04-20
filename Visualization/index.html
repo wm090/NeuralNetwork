@@ -31,14 +31,18 @@
             <div id="processing-results" style="display:none;">
                 <h3>Processing Results</h3>
                 <div id="results-content"></div>
-                <button type="button" id="run-training" style="display:none;">Run Training</button>
+                <div class="animation-controls">
+                    <button type="button" id="run-animation" class="primary-button" style="display:none;">Run Animation</button>
+                    <button type="button" id="run-training" style="display:none;">Run Training</button>
+                </div>
+                <div id="backprop-animation" class="backprop-animation" style="display:none;"></div>
+
             </div>
         </div>
 
         <div id="input-section" style="display:none;">
             <h2>Input Data</h2>
             <div id="input-fields"></div>
-            <button type="button" id="run-forward">Run Forward Pass</button>
         </div>
         <div id="weights-section" style="display:none;">
             <h2>Weights</h2>
@@ -58,7 +62,28 @@
             <button type="button" id="apply-manual-weights">Apply Weights</button>
             <div style="font-size:0.95em;color:#888;margin-top:6px;">Format: JavaScript/JSON array of arrays, e.g. <code>[[0.5,0.3,0.2],[0.3,0.2,-0.5]]</code></div>
         </div>
+
+        <div class="animation-controls">
+            <button type="button" id="run-forward" class="primary-button">Run Forward Pass</button>
+        </div>
+
         <div id="visualization"></div>
+
+        <div id="animation-player" class="animation-player" style="display:none;">
+            <div class="player-controls">
+                <button id="play-pause" class="player-button">⏸️ Pause</button>
+                <button id="step-back" class="player-button">⏮️ Previous</button>
+                <button id="step-forward" class="player-button">⏭️ Next</button>
+                <button id="restart" class="player-button">🔄 Restart</button>
+            </div>
+            <div class="player-progress">
+                <div class="progress-bar">
+                    <div id="progress-indicator" class="progress-indicator"></div>
+                </div>
+                <div id="step-indicator" class="step-indicator">Step 0/7</div>
+            </div>
+        </div>
+
         <div id="output-section" style="display:none;">
             <h2>Output</h2>
             <div id="output-values"></div>

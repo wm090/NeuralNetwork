@@ -305,6 +305,24 @@ function highlightNeurons(layerIdx) {
     }
 }
 
+// Clear all highlights
+function clearAllHighlights() {
+    let svg = visualization.querySelector('svg');
+    if (!svg) return;
+
+    // Clear neuron highlights
+    let circles = svg.querySelectorAll('circle.neuron');
+    circles.forEach(circle => {
+        circle.classList.remove('highlight-neuron');
+    });
+
+    // Clear connection highlights
+    let lines = svg.querySelectorAll('line.connection');
+    lines.forEach(line => {
+        line.classList.remove('highlight-connection');
+    });
+}
+
 function highlightConnections(fromLayer, toLayer) {
     let svg = visualization.querySelector('svg');
     if (!svg) return;
@@ -512,9 +530,14 @@ async function processFiles() {
     const weightsFile = document.getElementById('weights-file').files[0];
     const resultsContent = document.getElementById('results-content');
     const processingResults = document.getElementById('processing-results');
+    const backpropAnimation = document.getElementById('backprop-animation');
 
     // Clear previous results
     resultsContent.innerHTML = '';
+    backpropAnimation.innerHTML = '';
+    backpropAnimation.style.display = 'none';
+    document.getElementById('run-animation').style.display = 'none';
+    document.getElementById('run-training').style.display = 'none';
 
     if (!trainingFile || !weightsFile) {
         resultsContent.innerHTML += '<div class="error">Please select both training data and weights files.</div>';
@@ -555,8 +578,12 @@ async function processFiles() {
             resultsContent.innerHTML += `<div>${beforeResults.log}</div>`;
             resultsContent.innerHTML += `<div class="info">Accuracy: ${beforeResults.accuracy.toFixed(2)}% (${beforeResults.correct}/${trainingData.length})</div>`;
 
-            // Show the Run Training button
+            // Show the Run Animation and Run Training buttons
+            document.getElementById('run-animation').style.display = '';
             document.getElementById('run-training').style.display = '';
+
+            // Update visualization with the network
+            updateVisualizationWithTrainedNetwork();
         }
 
         processingResults.style.display = '';
@@ -759,9 +786,354 @@ function updateVisualizationWithTrainedNetwork() {
     weightsSection.style.display = '';
 }
 
-// Event listeners for file processing
+// Animation state variables
+let animationPaused = false;
+let currentStep = 0;
+let totalSteps = 7;
+let animationData = null;
+let animationInterval = null;
+
+// Animation for a single forward and backpropagation pass
+async function animateForwardAndBackprop() {
+    if (!trainingNetwork || trainingData.length === 0) {
+        alert('Please process training data and weights files first.');
+        return;
+    }
+
+    // Reset animation state
+    animationPaused = false;
+    currentStep = 0;
+
+    // Show animation containers
+    const backpropAnimation = document.getElementById('backprop-animation');
+    const animationPlayer = document.getElementById('animation-player');
+    backpropAnimation.innerHTML = '<h3>Neural Network Animation</h3>';
+    backpropAnimation.style.display = '';
+    animationPlayer.style.display = '';
+
+    // Make sure the visualization is visible
+    document.getElementById('visualization').style.display = '';
+
+    // Update player controls
+    document.getElementById('play-pause').innerHTML = '⏸️ Pause';
+    document.getElementById('step-back').disabled = true;
+    document.getElementById('step-forward').disabled = false;
+    document.getElementById('restart').disabled = false;
+
+    // Select the first training example for animation
+    const example = trainingData[0];
+    const inputs = example.inputs.map(val => isNaN(val) ? 0 : val);
+    const expectedOutputs = example.expectedOutputs.map(val => isNaN(val) ? 0 : val);
+
+    // Store animation data
+    animationData = { inputs, expectedOutputs };
+
+    // Create animation steps
+    backpropAnimation.innerHTML += `
+        <div class="animation-step" id="step-1">Step 1: Input values [${inputs.map(v => v.toFixed(2)).join(', ')}]</div>
+        <div class="animation-step" id="step-2">Step 2: Forward pass through hidden layer</div>
+        <div class="animation-step" id="step-3">Step 3: Forward pass through output layer</div>
+        <div class="animation-step" id="step-4">Step 4: Calculate output error</div>
+        <div class="animation-step" id="step-5">Step 5: Backpropagate error to hidden layer</div>
+        <div class="animation-step" id="step-6">Step 6: Update weights</div>
+        <div class="animation-step" id="step-7">Step 7: Final prediction</div>
+    `;
+
+    // Clear any existing highlights and render the network
+    renderVisualization(inputs, []);
+    clearAllHighlights();
+
+    // Scroll to the visualization
+    document.getElementById('visualization').scrollIntoView({ behavior: 'smooth' });
+
+    // Start the animation
+    await runAnimationStep(1);
+}
+
+// Run a specific animation step
+async function runAnimationStep(step) {
+    if (!animationData) return;
+
+    // Update current step
+    currentStep = step;
+
+    // Update progress indicator
+    updateProgressIndicator();
+
+    // Clear all active steps
+    for (let i = 1; i <= totalSteps; i++) {
+        const stepElement = document.getElementById(`step-${i}`);
+        if (stepElement) stepElement.classList.remove('active');
+    }
+
+    // Get animation data
+    const { inputs, expectedOutputs } = animationData;
+
+    // Activate current step
+    const currentStepElement = document.getElementById(`step-${step}`);
+    if (currentStepElement) currentStepElement.classList.add('active');
+
+    // Clear any existing highlights
+    renderVisualization(inputs, animationData.actualOutputs || []);
+    clearAllHighlights();
+
+    // Run the appropriate step
+    switch (step) {
+        case 1: // Input values
+            // Highlight input neurons
+            highlightNeurons(0);
+
+            // Set values for input neurons
+            for (let i = 0; i < trainingNetwork.inputLayer.length; i++) {
+                trainingNetwork.inputLayer[i].setValue(inputs[i]);
+            }
+            break;
+
+        case 2: // Forward pass through hidden layer
+            // Get values from input neurons
+            const inputValues = trainingNetwork.inputLayer.map(neuron => neuron.getValue());
+
+            // Compute hidden layer activations
+            const hiddenOutputs = [];
+            for (let i = 0; i < trainingNetwork.hiddenLayer.length; i++) {
+                hiddenOutputs[i] = trainingNetwork.hiddenLayer[i].activate(inputValues);
+            }
+
+            // Store hidden outputs in animation data
+            animationData.hiddenOutputs = hiddenOutputs;
+
+            // Highlight connections from input to hidden
+            highlightConnections(0, 1);
+            await sleep(500);
+
+            // Highlight hidden neurons
+            highlightNeurons(1);
+            break;
+
+        case 3: // Forward pass through output layer
+            // Make sure we have hidden outputs
+            if (!animationData.hiddenOutputs) {
+                // Calculate them if they don't exist
+                const inputValues = trainingNetwork.inputLayer.map(neuron => neuron.getValue());
+                const hiddenOutputs = [];
+                for (let i = 0; i < trainingNetwork.hiddenLayer.length; i++) {
+                    hiddenOutputs[i] = trainingNetwork.hiddenLayer[i].activate(inputValues);
+                }
+                animationData.hiddenOutputs = hiddenOutputs;
+            }
+
+            // Compute output layer activations
+            const actualOutputs = [];
+            for (let i = 0; i < trainingNetwork.outputLayer.length; i++) {
+                actualOutputs[i] = trainingNetwork.outputLayer[i].activate(animationData.hiddenOutputs);
+            }
+
+            // Store actual outputs in animation data
+            animationData.actualOutputs = actualOutputs;
+
+            // Highlight connections from hidden to output
+            highlightConnections(1, 2);
+            await sleep(500);
+
+            // Highlight output neurons and show output values
+            renderVisualization(inputs, actualOutputs);
+            highlightNeurons(2);
+            break;
+
+        case 4: // Calculate output error
+            // Make sure we have actual outputs
+            if (!animationData.actualOutputs) {
+                // We need to calculate them
+                await runAnimationStep(3);
+            }
+
+            // Calculate error
+            let error = 0;
+            for (let i = 0; i < animationData.actualOutputs.length; i++) {
+                error += Math.pow(expectedOutputs[i] - animationData.actualOutputs[i], 2);
+            }
+
+            // Store error in animation data
+            animationData.error = error;
+
+            // Display error
+            if (!currentStepElement.innerHTML.includes('Error:')) {
+                currentStepElement.innerHTML += `<br>Error: ${error.toFixed(4)}`;
+            }
+
+            // Highlight output neurons to show where error is calculated
+            highlightNeurons(2);
+            break;
+
+        case 5: // Backpropagate error
+            // Make sure we have actual outputs and hidden outputs
+            if (!animationData.actualOutputs || !animationData.hiddenOutputs) {
+                // We need to calculate them
+                await runAnimationStep(3);
+            }
+
+            // Calculate output layer deltas
+            const outputDeltas = [];
+            for (let i = 0; i < trainingNetwork.outputLayer.length; i++) {
+                const output = animationData.actualOutputs[i];
+                const target = expectedOutputs[i];
+                outputDeltas[i] = (target - output) * output * (1 - output);
+            }
+
+            // Calculate hidden layer deltas
+            const hiddenDeltas = [];
+            for (let i = 0; i < trainingNetwork.hiddenLayer.length; i++) {
+                let error = 0;
+                for (let j = 0; j < trainingNetwork.outputLayer.length; j++) {
+                    error += outputDeltas[j] * trainingNetwork.outputLayer[j].weights[i];
+                }
+                hiddenDeltas[i] = error * animationData.hiddenOutputs[i] * (1 - animationData.hiddenOutputs[i]);
+            }
+
+            // Store deltas in animation data
+            animationData.outputDeltas = outputDeltas;
+            animationData.hiddenDeltas = hiddenDeltas;
+
+            // First highlight output neurons where backpropagation starts
+            highlightNeurons(2);
+            await sleep(500);
+
+            // Then highlight connections from output to hidden (backpropagation)
+            highlightConnections(1, 2);
+            await sleep(500);
+
+            // Finally highlight hidden neurons where deltas are calculated
+            highlightNeurons(1);
+            break;
+
+        case 6: // Update weights
+            // Make sure we have deltas
+            if (!animationData.outputDeltas || !animationData.hiddenDeltas) {
+                // We need to calculate them
+                await runAnimationStep(5);
+            }
+
+            // Display weight update information
+            if (!currentStepElement.innerHTML.includes('Weights updated')) {
+                currentStepElement.innerHTML += `<br>Weights updated using learning rate: 0.1`;
+            }
+
+            // Highlight all connections to show weight updates
+            highlightConnections(0, 1);
+            await sleep(500);
+            highlightConnections(1, 2);
+            break;
+
+        case 7: // Final prediction
+            // Make sure we have actual outputs
+            if (!animationData.actualOutputs) {
+                // We need to calculate them
+                await runAnimationStep(3);
+            }
+
+            // Find which class has the highest value
+            const expectedClass = findMaxIndex(expectedOutputs);
+            const actualClass = findMaxIndex(animationData.actualOutputs);
+
+            // Display prediction
+            if (!currentStepElement.innerHTML.includes('Expected class')) {
+                currentStepElement.innerHTML += `<br>Expected class: ${expectedClass}, Predicted class: ${actualClass}`;
+                if (expectedClass === actualClass) {
+                    currentStepElement.innerHTML += ` ✓`;
+                } else {
+                    currentStepElement.innerHTML += ` ✗`;
+                }
+            }
+
+            // Show the final output
+            renderVisualization(inputs, animationData.actualOutputs);
+            highlightNeurons(2);
+
+            // Disable next button if this is the last step
+            document.getElementById('step-forward').disabled = true;
+            break;
+    }
+
+    // If not paused and not the last step, continue to next step after delay
+    if (!animationPaused && step < totalSteps) {
+        await sleep(1500);
+        await runAnimationStep(step + 1);
+    }
+
+    // If this is the last step, show completion message
+    if (step === totalSteps) {
+        document.getElementById('play-pause').innerHTML = '▶️ Play';
+        animationPaused = true;
+    }
+}
+
+// Update the progress indicator
+function updateProgressIndicator() {
+    // Update progress bar
+    const progressPercent = (currentStep / totalSteps) * 100;
+    document.getElementById('progress-indicator').style.width = `${progressPercent}%`;
+
+    // Update step indicator
+    document.getElementById('step-indicator').textContent = `Step ${currentStep}/${totalSteps}`;
+
+    // Update button states
+    document.getElementById('step-back').disabled = currentStep <= 1;
+    document.getElementById('step-forward').disabled = currentStep >= totalSteps;
+}
+
+// Play/pause the animation
+function togglePlayPause() {
+    animationPaused = !animationPaused;
+
+    if (animationPaused) {
+        document.getElementById('play-pause').innerHTML = '▶️ Play';
+    } else {
+        document.getElementById('play-pause').innerHTML = '⏸️ Pause';
+        // Continue from current step
+        if (currentStep < totalSteps) {
+            runAnimationStep(currentStep + 1);
+        } else {
+            // If at the end, restart
+            runAnimationStep(1);
+        }
+    }
+}
+
+// Step backward in the animation
+async function stepBack() {
+    if (currentStep > 1) {
+        animationPaused = true;
+        document.getElementById('play-pause').innerHTML = '▶️ Play';
+        await runAnimationStep(currentStep - 1);
+    }
+}
+
+// Step forward in the animation
+async function stepForward() {
+    if (currentStep < totalSteps) {
+        animationPaused = true;
+        document.getElementById('play-pause').innerHTML = '▶️ Play';
+        await runAnimationStep(currentStep + 1);
+    }
+}
+
+// Restart the animation
+async function restartAnimation() {
+    animationPaused = false;
+    document.getElementById('play-pause').innerHTML = '⏸️ Pause';
+    await runAnimationStep(1);
+}
+
+// Event listeners for file processing and animation
 document.getElementById('process-files').addEventListener('click', processFiles);
+document.getElementById('run-animation').addEventListener('click', animateForwardAndBackprop);
 document.getElementById('run-training').addEventListener('click', trainNetwork);
+
+// Event listeners for player controls
+document.getElementById('play-pause').addEventListener('click', togglePlayPause);
+document.getElementById('step-back').addEventListener('click', stepBack);
+document.getElementById('step-forward').addEventListener('click', stepForward);
+document.getElementById('restart').addEventListener('click', restartAnimation);
 
 // Initial build
 buildNetwork();

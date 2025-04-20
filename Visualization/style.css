@@ -50,9 +50,10 @@ form {
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 .highlight-neuron {
-    border-color: #fbc531 !important;
-    box-shadow: 0 0 12px 2px #fbc53199;
-    background: #fffbe6;
+    fill: #ff7043 !important;
+    r: 18 !important;
+    stroke: #e64a19;
+    stroke-width: 2;
 }
 
 .layer {
@@ -73,7 +74,7 @@ form {
     transition: stroke 0.2s, stroke-width 0.2s, opacity 0.2s;
 }
 .highlight-connection {
-    stroke: #e17055 !important;
+    stroke: #ff7043 !important;
     stroke-width: 4 !important;
     opacity: 1 !important;
 }
@@ -147,4 +148,113 @@ button:hover {
 
 .info {
     color: #2980b9;
+}
+
+/* Animation controls */
+.animation-controls {
+    display: flex;
+    justify-content: center;
+    margin: 20px 0;
+    gap: 10px;
+}
+
+.primary-button {
+    background-color: #3498db;
+    font-size: 16px;
+    padding: 10px 20px;
+    transition: background-color 0.3s;
+}
+
+.primary-button:hover {
+    background-color: #2980b9;
+}
+
+/* Animation styles */
+.backprop-animation {
+    margin: 15px 0;
+    padding: 10px;
+    border: 1px dashed #3498db;
+    border-radius: 5px;
+    background-color: #f8f9fa;
+}
+
+.animation-step {
+    margin: 5px 0;
+    padding: 5px;
+    border-left: 3px solid #3498db;
+    background-color: #f1f9ff;
+    transition: background-color 0.3s;
+}
+
+.animation-step.active {
+    background-color: #d4e9f7;
+    font-weight: bold;
+}
+
+/* Animation player controls */
+.animation-player {
+    margin: 10px auto 20px auto;
+    padding: 15px;
+    border: 1px solid #3498db;
+    border-radius: 5px;
+    background-color: #f8f9fa;
+    max-width: 90%;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.player-controls {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.player-button {
+    padding: 8px 15px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.player-button:hover {
+    background-color: #2980b9;
+}
+
+.player-button:disabled {
+    background-color: #bdc3c7;
+    cursor: not-allowed;
+}
+
+.player-progress {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 10px;
+    background-color: #ecf0f1;
+    border-radius: 5px;
+    position: relative;
+    margin-bottom: 5px;
+}
+
+.progress-indicator {
+    position: absolute;
+    height: 100%;
+    background-color: #3498db;
+    border-radius: 5px;
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+.step-indicator {
+    font-size: 14px;
+    color: #7f8c8d;
+    font-weight: bold;
 }
