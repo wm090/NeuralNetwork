@@ -7,7 +7,7 @@ public class NeuralNetwork {
     Neuron[] hiddenLayer;
     Neuron[] outputLayer;
 
-    // Store the last activations for backpropagation
+    // for backpropagation
     private double[] lastInputs;
     private double[] lastHiddenOutputs;
     private double[] lastOutputs;
@@ -18,7 +18,7 @@ public class NeuralNetwork {
             throw new IllegalArgumentException("Number of hidden neurons cannot be null");
         }
 
-        // Validate network architecture
+        // Validations
         if (numInputs <= 0) {
             throw new IllegalArgumentException("Network must have at least one input neuron");
         }
@@ -33,9 +33,9 @@ public class NeuralNetwork {
         hiddenLayer = new Neuron[numHidden];
         outputLayer = new Neuron[numOutputs];
 
-        // Create input neurons (no weights, just pass-through values)
+        // Create input neurons
         for (int i = 0; i < numInputs; i++) {
-            inputLayer[i] = new Neuron(); // Use the no-arg constructor for input neurons
+            inputLayer[i] = new Neuron();
         }
         for (int i = 0; i < numHidden; i++) {
             hiddenLayer[i] = new Neuron(numInputs);
@@ -49,18 +49,18 @@ public class NeuralNetwork {
         // Store inputs for backpropagation
         this.lastInputs = Arrays.copyOf(data, data.length);
 
-        // Step 1: Set values for input neurons
+        // Set values for input neurons
         for (int i = 0; i < inputLayer.length; i++) {
             inputLayer[i].setValue(data[i]);
         }
 
-        // Step 2: Get values from input neurons
+        // Get values from input neurons
         double[] inputValues = new double[inputLayer.length];
         for (int i = 0; i < inputLayer.length; i++) {
             inputValues[i] = inputLayer[i].getValue();
         }
 
-        // Step 3: Compute hidden layer activations
+        // hidden layer activations
         double[] hiddenOutputs = new double[hiddenLayer.length];
         for (int i = 0; i < hiddenLayer.length; i++) {
             hiddenOutputs[i] = hiddenLayer[i].activate(inputValues);
@@ -69,7 +69,7 @@ public class NeuralNetwork {
         // Store hidden outputs for backpropagation
         this.lastHiddenOutputs = Arrays.copyOf(hiddenOutputs, hiddenOutputs.length);
 
-        // Step 2: Compute output layer activations
+        // output layer activations
         double[] outputOutputs = new double[outputLayer.length];
         for (int i = 0; i < outputLayer.length; i++) {
             outputOutputs[i] = outputLayer[i].activate(hiddenOutputs);
@@ -100,11 +100,7 @@ public class NeuralNetwork {
         }
     }
 
-    /**
-     * Get the current weights of the network
-     *
-     * @return Array containing hidden and output layer weights
-     */
+    // Get weightS of the network
     public double[][][] getWeights() {
         double[][] hiddenWeights = new double[hiddenLayer.length][];
         for (int i = 0; i < hiddenLayer.length; i++) {
@@ -119,16 +115,7 @@ public class NeuralNetwork {
         return new double[][][] { hiddenWeights, outputWeights };
     }
 
-    /**
-     * Train the neural network using backpropagation
-     *
-     * @param trainingData List of training data
-     * @param learningRate Learning rate for weight updates (how fast the network
-     *                     learns)
-     * @param epochs       Number of training epochs (how many times to go through
-     *                     all examples)
-     */
-    public void train(List<TrainingData> trainingData, double learningRate, int epochs) {
+    public void train(List<Main.TrainingData> trainingData, double learningRate, int epochs) {
         System.out.println("Starting training for " + epochs + " epochs...");
 
         // Repeat the training process 'epochs' times
@@ -136,13 +123,13 @@ public class NeuralNetwork {
             double totalError = 0;
 
             // Go through each training example
-            for (TrainingData data : trainingData) {
-                // Step 1: Forward pass - get the network's prediction
-                double[] inputs = data.getInputs(); // RGB values
-                double[] expectedOutputs = data.getExpectedOutputs(); // Correct traffic light class
-                double[] actualOutputs = forward(inputs); // Network's prediction
+            for (Main.TrainingData data : trainingData) {
+                
+                double[] inputs = data.getInputs(); 
+                double[] expectedOutputs = data.getExpectedOutputs(); 
+                double[] actualOutputs = forward(inputs); 
 
-                // Step 2: Calculate how wrong the prediction was (error)
+                // Calculate how wrong the prediction was (error)
                 double error = 0;
                 for (int i = 0; i < actualOutputs.length; i++) {
                     // Square the difference between expected and actual
@@ -150,28 +137,22 @@ public class NeuralNetwork {
                 }
                 totalError += error;
 
-                // Step 3: Update the weights to make the network better
+                // Update the weights to make the network better
                 backpropagate(expectedOutputs, learningRate);
             }
 
             // Print progress every 100 epochs
+            /*
             if (epoch % 100 == 0 || epoch == epochs - 1) {
                 System.out.println("Epoch " + epoch + ", Error: " + totalError);
-            }
+            }*/
         }
 
         System.out.println("Training completed.");
     }
 
-    /**
-     * Backpropagation algorithm to update weights
-     * This is how the network learns from its mistakes
-     *
-     * @param expectedOutputs Expected output values
-     * @param learningRate    Learning rate for weight updates
-     */
     private void backpropagate(double[] expectedOutputs, double learningRate) {
-        // STEP 1: Calculate errors in the output layer
+        
         // ---------------------------------------------
         double[] outputErrors = new double[outputLayer.length];
         double[] outputDeltas = new double[outputLayer.length];
@@ -184,21 +165,18 @@ public class NeuralNetwork {
             outputDeltas[i] = outputErrors[i] * outputLayer[i].sigmoidDerivative(lastOutputs[i]);
         }
 
-        // STEP 2: Calculate errors in the hidden layer
-        // -------------------------------------------
+        // Calculate errors in the hidden layer
         double[] hiddenErrors = new double[hiddenLayer.length];
         double[] hiddenDeltas = new double[hiddenLayer.length];
 
         for (int i = 0; i < hiddenLayer.length; i++) {
-            // Each hidden neuron contributed to all output errors
             for (int j = 0; j < outputLayer.length; j++) {
                 hiddenErrors[i] += outputDeltas[j] * outputLayer[j].weights[i];
             }
             hiddenDeltas[i] = hiddenErrors[i] * hiddenLayer[i].sigmoidDerivative(lastHiddenOutputs[i]);
         }
 
-        // STEP 3: Update weights in the output layer
-        // -----------------------------------------
+        // Update weights in the output layer
         for (int i = 0; i < outputLayer.length; i++) {
             for (int j = 0; j < outputLayer[i].weights.length - 1; j++) {
                 // Update each weight: weight += learning_rate * delta * input
@@ -208,8 +186,7 @@ public class NeuralNetwork {
             outputLayer[i].weights[outputLayer[i].weights.length - 1] += learningRate * outputDeltas[i];
         }
 
-        // STEP 4: Update weights in the hidden layer
-        // -----------------------------------------
+        // Update weights in the hidden layer
         for (int i = 0; i < hiddenLayer.length; i++) {
             for (int j = 0; j < hiddenLayer[i].weights.length - 1; j++) {
                 // Update each weight: weight += learning_rate * delta * input
@@ -221,18 +198,12 @@ public class NeuralNetwork {
         }
     }
 
-    /**
-     * Test the neural network on the training data and print results
-     *
-     * @param testData The data to test on
-     * @return The accuracy percentage (0-100)
-     */
-    public double testNetwork(List<TrainingData> testData) {
+    public double testNetwork(List<Main.TrainingData> testData) {
         // Counter for correct predictions
         int correct = 0;
 
         // Test each example
-        for (TrainingData data : testData) {
+        for (Main.TrainingData data : testData) {
             // Get the inputs (RGB values)
             double[] inputs = data.getInputs();
 
@@ -247,7 +218,7 @@ public class NeuralNetwork {
             int actualClass = findMaxIndex(actualOutputs);
 
             // Print the result
-            System.out.print("Input (RGB): ");
+            System.out.print("Input: ");
             for (double input : inputs) {
                 System.out.printf("%.2f ", input);
             }
@@ -269,13 +240,6 @@ public class NeuralNetwork {
         return accuracy;
     }
 
-    /**
-     * Find the index of the maximum value in an array
-     * This helps us determine which class the network predicted
-     *
-     * @param array The array to search
-     * @return The index of the maximum value
-     */
     public int findMaxIndex(double[] array) {
         // Start with the first element
         int maxIndex = 0;

@@ -6,20 +6,38 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Main class to demonstrate the neural network for traffic light classification
- */
 public class Main {
+
+    /**
+     * Simple static class to hold training data (inputs and expected outputs)
+     */
+    static class TrainingData {
+        private double[] inputs;
+        private double[] expectedOutputs;
+
+        public TrainingData(double[] inputs, double[] expectedOutputs) {
+            this.inputs = inputs;
+            this.expectedOutputs = expectedOutputs;
+        }
+
+        public double[] getInputs() {
+            return inputs;
+        }
+
+        public double[] getExpectedOutputs() {
+            return expectedOutputs;
+        }
+    }
     public static void main(String[] args) {
 
-        // File with training data
+        // training data
         String trainingDataFile = "KW17_traindata_trafficlights_classification.csv";
-        // File with initial weights for the neural network
+        // initial weights
         String weightsFile = "KW17_weights_trafficlights_classification_simplified.csv";
         // File to save the trained weights
         String outputWeightsFile = "trained_weights.csv";
 
-        // Load the training data =====
+        // Load the training data...
         System.out.println("Loading training data from " + trainingDataFile);
         List<TrainingData> trainingData = new ArrayList<>();
 
@@ -49,11 +67,11 @@ public class Main {
 
         System.out.println("Loaded " + trainingData.size() + " training examples");
 
-        //Create the neural network =====
+        // neural network
         // Get network dimensions from the first training example
-        TrainingData firstExample = trainingData.get(0);
-        int numInputs = firstExample.getInputs().length;         // Number of input neurons (RGB values)
-        int numOutputs = firstExample.getExpectedOutputs().length; // Number of output neurons (classes)
+        TrainingData InputExample = trainingData.get(0);
+        int numInputs = InputExample.getInputs().length;         // Number of input neurons
+        int numOutputs = InputExample.getExpectedOutputs().length; // Number of output neurons
         int numHidden = 3;  // 3 as an example
         NeuralNetwork nn = new NeuralNetwork(numInputs, numHidden, numOutputs);
 
@@ -108,15 +126,15 @@ public class Main {
         }
 
         // Test the network before training
-        System.out.println("\nTesting network BEFORE training:");
+        System.out.println("\nBefore training - test:");
         nn.testNetwork(trainingData);
 
         // Train the network
-        System.out.println("\nTraining the network...");
+        System.out.println("\nTraining...");
         nn.train(trainingData, 0.1, 1000);
 
         // Test the network after training
-        System.out.println("\nTesting network AFTER training:");
+        System.out.println("\nAfter training:");
         nn.testNetwork(trainingData);
 
         // Save the trained weights
