@@ -1,3 +1,9 @@
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -5,58 +11,157 @@ import java.util.List;
  */
 public class Main {
     public static void main(String[] args) {
-        // ===== STEP 1: Set up file paths =====
-        // File with training examples (RGB values and traffic light classes)
+
+        // File with training data
         String trainingDataFile = "KW17_traindata_trafficlights_classification.csv";
         // File with initial weights for the neural network
         String weightsFile = "KW17_weights_trafficlights_classification_simplified.csv";
         // File to save the trained weights
         String outputWeightsFile = "trained_weights.csv";
 
-        // ===== STEP 2: Load the training data =====
+        // Load the training data =====
         System.out.println("Loading training data from " + trainingDataFile);
-        List<TrainingData> trainingData = FileHandler.readTrainingData(trainingDataFile);
+        List<TrainingData> trainingData = new ArrayList<>();
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(trainingDataFile))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split("\\s+");
+                if (parts.length >= 2) {
+                    String[] inputParts = parts[0].split(";");
+                    double[] inputs = new double[inputParts.length];
+                    for (int i = 0; i < inputParts.length; i++) {
+                        inputs[i] = Double.parseDouble(inputParts[i]);
+                    }
+
+                    String[] outputParts = parts[1].split(";");
+                    double[] outputs = new double[outputParts.length];
+                    for (int i = 0; i < outputParts.length; i++) {
+                        outputs[i] = Double.parseDouble(outputParts[i]);
+                    }
+
+                    trainingData.add(new TrainingData(inputs, outputs));
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Error reading training data: " + e.getMessage());
+        }
+
         System.out.println("Loaded " + trainingData.size() + " training examples");
 
-        // ===== STEP 3: Create the neural network =====
+        //Create the neural network =====
         // Get network dimensions from the first training example
         TrainingData firstExample = trainingData.get(0);
         int numInputs = firstExample.getInputs().length;         // Number of input neurons (RGB values)
         int numOutputs = firstExample.getExpectedOutputs().length; // Number of output neurons (classes)
-        int numHidden = 3;  // Number of hidden neurons (we'll use 3)
-
-        // Create the neural network
-        System.out.println("Creating neural network with:" +
-                           "\n - " + numInputs + " input neurons (for RGB values)" +
-                           "\n - " + numHidden + " hidden neurons" +
-                           "\n - " + numOutputs + " output neurons (for traffic light classes)");
+        int numHidden = 3;  // 3 as an example
         NeuralNetwork nn = new NeuralNetwork(numInputs, numHidden, numOutputs);
 
-        // ===== STEP 4: Load initial weights =====
-        System.out.println("\nLoading initial weights from " + weightsFile);
-        double[][][] weights = FileHandler.readWeights(weightsFile);
-        if (weights != null) {
-            nn.setWeights(weights[0], weights[1]);
-            System.out.println("Weights loaded successfully");
+        System.out.println();
+
+        // Load initial weights =====
+        System.out.println("Loading initial weights " + weightsFile);
+        double[][][] weights = null;
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(weightsFile))) {
+            // Read dimensions
+            String[] dimensions = reader.readLine().split(";");
+            int wNumInputs = Integer.parseInt(dimensions[1]);
+            int wNumHidden = Integer.parseInt(dimensions[2]);
+            int wNumOutputs = Integer.parseInt(dimensions[3]);
+
+            // Read hidden weights
+            double[][] hiddenWeights = new double[wNumHidden][wNumInputs + 1];
+            for (int i = 0; i < wNumHidden; i++) {
+                String[] values = reader.readLine().split(";");
+                for (int j = 0; j < wNumInputs + 1 && j < values.length; j++) {
+                    String value = values[j].trim();
+                    if (!value.isEmpty()) {
+                        hiddenWeights[i][j] = Double.parseDouble(value);
+                    }
+                }
+            }
+
+            // Skip separator
+            reader.readLine();
+
+            // Read output weights
+            double[][] outputWeights = new double[wNumOutputs][wNumHidden + 1];
+            for (int i = 0; i < wNumOutputs; i++) {
+                String[] values = reader.readLine().split(";");
+                for (int j = 0; j < wNumHidden + 1 && j < values.length; j++) {
+                    String value = values[j].trim();
+                    if (!value.isEmpty()) {
+                        outputWeights[i][j] = Double.parseDouble(value);
+                    }
+                }
+            }
+
+            weights = new double[][][] { hiddenWeights, outputWeights };
+        } catch (IOException e) {
+            System.out.println("Error reading weights: " + e.getMessage());
         }
 
-        // ===== STEP 5: Test the network before training =====
+        if (weights != null) {
+            nn.setWeights(weights[0], weights[1]);
+            System.out.println("Weights loaded");
+        }
+
+        // Test the network before training
         System.out.println("\nTesting network BEFORE training:");
         nn.testNetwork(trainingData);
 
-        // ===== STEP 6: Train the network =====
+        // Train the network
         System.out.println("\nTraining the network...");
-        // Parameters: training data, learning rate (0.1), number of epochs (1000)
         nn.train(trainingData, 0.1, 1000);
 
-        // ===== STEP 7: Test the network after training =====
+        // Test the network after training
         System.out.println("\nTesting network AFTER training:");
         nn.testNetwork(trainingData);
 
-        // ===== STEP 8: Save the trained weights =====
+        // Save the trained weights
         System.out.println("\nSaving trained weights to " + outputWeightsFile);
         double[][][] trainedWeights = nn.getWeights();
-        FileHandler.saveWeights(outputWeightsFile, trainedWeights[0], trainedWeights[1]);
+
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputWeightsFile))) {
+            double[][] hiddenWeights = trainedWeights[0];
+            double[][] outputWeights = trainedWeights[1];
+
+            // Calculate dimensions
+            int weightsNumInputs = hiddenWeights[0].length - 1; // -1 to exclude bias
+            int weightsNumHidden = hiddenWeights.length;
+            int weightsNumOutputs = outputWeights.length;
+
+            // Write header
+            writer.write("layers;" + weightsNumInputs + ";" + weightsNumHidden + ";" + weightsNumOutputs);
+            writer.newLine();
+
+            // Write hidden weights
+            for (double[] neuronWeights : hiddenWeights) {
+                for (int j = 0; j < neuronWeights.length; j++) {
+                    writer.write(String.valueOf(neuronWeights[j]));
+                    if (j < neuronWeights.length - 1) writer.write(";");
+                }
+                writer.newLine();
+            }
+
+            // Write separator
+            writer.write(";;;");
+            writer.newLine();
+
+            // Write output weights
+            for (double[] neuronWeights : outputWeights) {
+                for (int j = 0; j < neuronWeights.length; j++) {
+                    writer.write(String.valueOf(neuronWeights[j]));
+                    if (j < neuronWeights.length - 1) writer.write(";");
+                }
+                writer.newLine();
+            }
+
+            System.out.println("Weights saved successfully");
+        } catch (IOException e) {
+            System.out.println("Error saving weights: " + e.getMessage());
+        }
 
         System.out.println("\nDone!");
 
