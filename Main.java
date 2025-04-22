@@ -8,9 +8,7 @@ import java.util.List;
 
 public class Main {
 
-    /**
-     * Simple static class to hold training data (inputs and expected outputs)
-     */
+    //static class to hold training data (inputs and expected outputs)
     static class TrainingData {
         private double[] inputs;
         private double[] expectedOutputs;
