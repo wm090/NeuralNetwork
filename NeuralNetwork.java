@@ -2,142 +2,83 @@ import java.util.Arrays;
 import java.util.List;
 
 public class NeuralNetwork {
-
     Neuron[] inputLayer;
+    Neuron inputBiasNeuron;
     Neuron[] hiddenLayer;
+    Neuron hiddenBiasNeuron;
     Neuron[] outputLayer;
 
-    // for backpropagation
+    // Cache for backpropagation
     private double[] lastInputs;
     private double[] lastHiddenOutputs;
     private double[] lastOutputs;
 
     public NeuralNetwork(int numInputs, Integer numHidden, int numOutputs) {
-        // Check for null values first
-        if (numHidden == null) {
-            throw new IllegalArgumentException("Number of hidden neurons cannot be null");
+        // Validate network architecture
+        if (numHidden == null || numInputs <= 0 || numHidden <= 0 || numOutputs <= 0) {
+            throw new IllegalArgumentException("Invalid network architecture");
         }
 
-        // Validations
-        if (numInputs <= 0) {
-            throw new IllegalArgumentException("Network must have at least one input neuron");
-        }
-        if (numHidden <= 0) {
-            throw new IllegalArgumentException("Network must have at least one hidden neuron");
-        }
-        if (numOutputs <= 0) {
-            throw new IllegalArgumentException("Network must have at least one output neuron");
-        }
-
+        // Initialize layers
         inputLayer = new Neuron[numInputs];
+        inputBiasNeuron = new Neuron(numHidden, true);
         hiddenLayer = new Neuron[numHidden];
+        hiddenBiasNeuron = new Neuron(numOutputs, true);
         outputLayer = new Neuron[numOutputs];
 
-        // Create neurons
-        for (int i = 0; i < numInputs; i++) {
+        // neurons for each layer
+        for (int i = 0; i < numInputs; i++){
             inputLayer[i] = new Neuron();
         }
         for (int i = 0; i < numHidden; i++) {
-            hiddenLayer[i] = new Neuron(numInputs);
+            hiddenLayer[i] = new Neuron(numInputs + 1);
         }
         for (int i = 0; i < numOutputs; i++) {
-            outputLayer[i] = new Neuron(numHidden);
+            outputLayer[i] = new Neuron(numHidden + 1);
         }
     }
 
     public double[] forward(double[] data) {
         // Store inputs for backpropagation
-        this.lastInputs = Arrays.copyOf(data, data.length);
+        lastInputs = Arrays.copyOf(data, data.length);
 
-        // Set values for input neurons
+        // Set input values
         for (int i = 0; i < inputLayer.length; i++) {
             inputLayer[i].setValue(data[i]);
         }
 
-        // Get values from input neurons
-        double[] inputValues = new double[inputLayer.length];
+        // Collect input values (including bias)
+        double[] inputValues = new double[inputLayer.length + 1];
         for (int i = 0; i < inputLayer.length; i++) {
             inputValues[i] = inputLayer[i].getValue();
         }
+        inputValues[inputLayer.length] = inputBiasNeuron.getValue();
 
-        // hidden layer activations
-        double[] hiddenOutputs = new double[hiddenLayer.length];
+        // Process hidden layer
+        double[] hiddenOutputs = new double[hiddenLayer.length + 1];
         for (int i = 0; i < hiddenLayer.length; i++) {
             hiddenOutputs[i] = hiddenLayer[i].activate(inputValues);
         }
+        hiddenOutputs[hiddenLayer.length] = hiddenBiasNeuron.getValue();
+        lastHiddenOutputs = Arrays.copyOf(hiddenOutputs, hiddenOutputs.length);
 
-        // Store hidden outputs for backpropagation
-        this.lastHiddenOutputs = Arrays.copyOf(hiddenOutputs, hiddenOutputs.length);
-
-        // output layer activations
-        double[] outputOutputs = new double[outputLayer.length];
+        // Process output layer
+        double[] outputs = new double[outputLayer.length];
         for (int i = 0; i < outputLayer.length; i++) {
-            outputOutputs[i] = outputLayer[i].activate(hiddenOutputs);
+            outputs[i] = outputLayer[i].activate(hiddenOutputs);
         }
+        lastOutputs = Arrays.copyOf(outputs, outputs.length);
 
-        // Store outputs for backpropagation
-        this.lastOutputs = Arrays.copyOf(outputOutputs, outputOutputs.length);
-
-        return outputOutputs;
-    }
-
-    public void setWeights(double[][] hiddenWeights, double[][] outputWeights) {
-        // Set weights for hidden layer
-        for (int i = 0; i < hiddenLayer.length; i++) {
-            if (i < hiddenWeights.length) {
-                for (int j = 0; j < hiddenLayer[i].weights.length && j < hiddenWeights[i].length; j++) {
-                    hiddenLayer[i].weights[j] = hiddenWeights[i][j];
-                }
-            }
-        }
-        // Set weights for output layer
-        for (int i = 0; i < outputLayer.length; i++) {
-            if (i < outputWeights.length) {
-                for (int j = 0; j < outputLayer[i].weights.length && j < outputWeights[i].length; j++) {
-                    outputLayer[i].weights[j] = outputWeights[i][j];
-                }
-            }
-        }
-    }
-
-    // Get weightS of the network
-    public double[][][] getWeights() {
-        double[][] hiddenWeights = new double[hiddenLayer.length][];
-        for (int i = 0; i < hiddenLayer.length; i++) {
-            hiddenWeights[i] = Arrays.copyOf(hiddenLayer[i].weights, hiddenLayer[i].weights.length);
-        }
-
-        double[][] outputWeights = new double[outputLayer.length][];
-        for (int i = 0; i < outputLayer.length; i++) {
-            outputWeights[i] = Arrays.copyOf(outputLayer[i].weights, outputLayer[i].weights.length);
-        }
-
-        return new double[][][] { hiddenWeights, outputWeights };
+        return outputs;
     }
 
     public void train(List<Main.TrainingData> trainingData, double learningRate, int epochs) {
         System.out.println("Starting training for " + epochs + " epochs...");
 
-        // epochs
         for (int epoch = 0; epoch < epochs; epoch++) {
-            double totalError = 0;
-
             for (Main.TrainingData data : trainingData) {
-                
-                double[] inputs = data.getInputs(); 
-                double[] expectedOutputs = data.getExpectedOutputs(); 
-                double[] actualOutputs = forward(inputs); 
-
-                // error calculation
-                double error = 0;
-                for (int i = 0; i < actualOutputs.length; i++) {
-                    // Square the difference between expected and actual
-                    error += Math.pow(expectedOutputs[i] - actualOutputs[i], 2);
-                }
-                totalError += error;
-
-                // Update the weights to make the network better
-                backpropagate(expectedOutputs, learningRate);
+                forward(data.getInputs());
+                backpropagate(data.getExpectedOutputs(), learningRate);
             }
         }
 
@@ -145,53 +86,42 @@ public class NeuralNetwork {
     }
 
     private void backpropagate(double[] expectedOutputs, double learningRate) {
-        
-        // ---------------------------------------------
-        double[] outputErrors = new double[outputLayer.length];
+        // Calculate output layer deltas
         double[] outputDeltas = new double[outputLayer.length];
-
         for (int i = 0; i < outputLayer.length; i++) {
-            // How wrong was the prediction? (expected - actual)
-            outputErrors[i] = expectedOutputs[i] - lastOutputs[i];
-
-            // Calculate delta (error * derivative) for weight updates
-            outputDeltas[i] = outputErrors[i] * outputLayer[i].sigmoidDerivative(lastOutputs[i]);
+            outputDeltas[i] = (expectedOutputs[i] - lastOutputs[i]) *
+                              outputLayer[i].sigmoidDerivative(lastOutputs[i]);
         }
 
-        // Calculate errors in the hidden layer
-        double[] hiddenErrors = new double[hiddenLayer.length];
+        // Calculate hidden layer deltas
         double[] hiddenDeltas = new double[hiddenLayer.length];
-
         for (int i = 0; i < hiddenLayer.length; i++) {
+            double error = 0;
             for (int j = 0; j < outputLayer.length; j++) {
-                hiddenErrors[i] += outputDeltas[j] * outputLayer[j].weights[i];
+                error += outputDeltas[j] * outputLayer[j].weights[i];
             }
-            hiddenDeltas[i] = hiddenErrors[i] * hiddenLayer[i].sigmoidDerivative(lastHiddenOutputs[i]);
+            hiddenDeltas[i] = error * hiddenLayer[i].sigmoidDerivative(lastHiddenOutputs[i]);
         }
 
-        // Update weights in the output layer
+        // Update output layer weights
         for (int i = 0; i < outputLayer.length; i++) {
-            for (int j = 0; j < outputLayer[i].weights.length - 1; j++) {
+            for (int j = 0; j < outputLayer[i].weights.length; j++) {
                 outputLayer[i].weights[j] += learningRate * outputDeltas[i] * lastHiddenOutputs[j];
             }
-            // Update bias weight
-            outputLayer[i].weights[outputLayer[i].weights.length - 1] += learningRate * outputDeltas[i];
         }
 
-        // Update weights in the hidden layer
+        // Update hidden layer weights
         for (int i = 0; i < hiddenLayer.length; i++) {
-            for (int j = 0; j < hiddenLayer[i].weights.length - 1; j++) {
-                hiddenLayer[i].weights[j] += learningRate * hiddenDeltas[i] * lastInputs[j];
+            for (int j = 0; j < hiddenLayer[i].weights.length; j++) {
+                double input = j < lastInputs.length ? lastInputs[j] : 1.0; // 1.0 for bias
+                hiddenLayer[i].weights[j] += learningRate * hiddenDeltas[i] * input;
             }
-            hiddenLayer[i].weights[hiddenLayer[i].weights.length - 1] += learningRate * hiddenDeltas[i];
         }
     }
 
     public void testNetwork(List<Main.TrainingData> testData) {
-        // Counter for correct predictions
         int correct = 0;
 
-        // Test each example
         for (Main.TrainingData data : testData) {
             double[] inputs = data.getInputs();
             double[] expectedOutputs = data.getExpectedOutputs();
@@ -201,38 +131,49 @@ public class NeuralNetwork {
             int actualClass = findMaxIndex(actualOutputs);
 
             System.out.print("Input: ");
-            for (double input : inputs) {
-                System.out.printf("%.2f ", input);
-            }
-            System.out.print("| Expected: " + expectedClass + " | Actual: " + actualClass);
+            for (double input : inputs) System.out.printf("%.2f ", input);
 
-            if (expectedClass == actualClass) {
-                System.out.println(" correct");
-                correct++;
-            } else {
-                System.out.println(" wrong");
-            }
+            System.out.print("| Expected: " + expectedClass + " | Actual: " + actualClass);
+            System.out.println(expectedClass == actualClass ? " correct" : " wrong");
+
+            if (expectedClass == actualClass) correct++;
         }
     }
 
     public int findMaxIndex(double[] array) {
         int maxIndex = 0;
-        double maxValue = array[0];
-
         for (int i = 1; i < array.length; i++) {
-            if (array[i] > maxValue) {
-                maxValue = array[i];
-                maxIndex = i;
-            }
+            if (array[i] > array[maxIndex]) maxIndex = i;
         }
-
-        // Return the index of the biggest value
         return maxIndex;
     }
 
-    @Override
-    public String toString() {
-        return "NeuralNetwork [inputLayer=" + Arrays.toString(inputLayer) + ", hiddenLayer="
-                + Arrays.toString(hiddenLayer) + ", outputLayer=" + Arrays.toString(outputLayer) + "]";
+    public void setWeights(double[][] hiddenWeights, double[][] outputWeights) {
+        // Set hidden layer weights
+        for (int i = 0; i < hiddenLayer.length && i < hiddenWeights.length; i++) {
+            for (int j = 0; j < hiddenLayer[i].weights.length && j < hiddenWeights[i].length; j++) {
+                hiddenLayer[i].weights[j] = hiddenWeights[i][j];
+            }
+        }
+
+        // Set output layer weights
+        for (int i = 0; i < outputLayer.length && i < outputWeights.length; i++) {
+            for (int j = 0; j < outputLayer[i].weights.length && j < outputWeights[i].length; j++) {
+                outputLayer[i].weights[j] = outputWeights[i][j];
+            }
+        }
+    }
+
+    public double[][][] getWeights() {
+        double[][] hiddenWeights = new double[hiddenLayer.length][];
+        double[][] outputWeights = new double[outputLayer.length][];
+
+        for (int i = 0; i < hiddenLayer.length; i++) {
+            hiddenWeights[i] = Arrays.copyOf(hiddenLayer[i].weights, hiddenLayer[i].weights.length);
+        }
+        for (int i = 0; i < outputLayer.length; i++) {
+            outputWeights[i] = Arrays.copyOf(outputLayer[i].weights, outputLayer[i].weights.length);
+        }
+        return new double[][][] { hiddenWeights, outputWeights };
     }
 }

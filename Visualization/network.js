@@ -1,23 +1,29 @@
 // Neural Network logic in JS, inspired by your Java code
 class Neuron {
-    constructor(numInputs = null) {
+    constructor(numInputs = null, isBias = false) {
         // If numInputs is null, this is an input neuron
         this.isInputNeuron = (numInputs === null);
-        this.value = 0.0;
+        this.isBiasNeuron = isBias;
+        this.value = this.isBiasNeuron ? 1.0 : 0.0; // Bias neurons always have value 1.0
 
         if (!this.isInputNeuron) {
-            // +1 for bias
-            this.weights = Array(numInputs + 1).fill(0).map(() => Math.random() * 2 - 1);
+            // Regular neurons have weights for each input
+            this.weights = Array(numInputs).fill(0).map(() => Math.random() * 2 - 1);
         } else {
             this.weights = null; // Input neurons don't have weights
         }
     }
 
     setValue(value) {
-        this.value = value;
+        if (!this.isBiasNeuron) { // Don't change bias neuron value
+            this.value = value;
+        }
     }
 
     getValue() {
+        if (this.isBiasNeuron) {
+            return 1.0; // Bias neurons always return 1.0
+        }
         return this.value;
     }
 
@@ -27,12 +33,16 @@ class Neuron {
             return this.value;
         }
 
+        // For bias neurons, always return 1.0
+        if (this.isBiasNeuron) {
+            return 1.0;
+        }
+
         // For hidden and output neurons, calculate weighted sum
         let sum = 0;
         for (let i = 0; i < inputs.length; i++) {
             sum += inputs[i] * this.weights[i];
         }
-        sum += this.weights[inputs.length]; // bias
         return 1 / (1 + Math.exp(-sum)); // sigmoid
     }
 }
@@ -57,9 +67,17 @@ class NeuralNetwork {
         // Create input neurons (no weights, just pass-through values)
         this.inputLayer = Array(numInputs).fill(0).map(() => new Neuron());
 
-        // Create hidden and output neurons with weights
-        this.hiddenLayer = Array(numHidden).fill(0).map(() => new Neuron(numInputs));
-        this.outputLayer = Array(numOutputs).fill(0).map(() => new Neuron(numHidden));
+        // Create bias neuron for input layer
+        this.inputBiasNeuron = new Neuron(numHidden, true);
+
+        // Create hidden neurons with weights (including connections from input bias neuron)
+        this.hiddenLayer = Array(numHidden).fill(0).map(() => new Neuron(numInputs + 1)); // +1 for bias
+
+        // Create bias neuron for hidden layer
+        this.hiddenBiasNeuron = new Neuron(numOutputs, true);
+
+        // Create output neurons with weights (including connections from hidden bias neuron)
+        this.outputLayer = Array(numOutputs).fill(0).map(() => new Neuron(numHidden + 1)); // +1 for bias
     }
     setWeights(hiddenWeights, outputWeights) {
         for (let i = 0; i < this.hiddenLayer.length; i++) {
@@ -79,21 +97,33 @@ class NeuralNetwork {
     }
     forward(inputData) {
         // Validate and clean input data - replace any NaN with 0
-        const cleanInputData = inputData.map(val => isNaN(val) ? 0 : val);
+        const cleanInputData = inputData.slice(0, this.numInputs).map(val => isNaN(val) ? 0 : val);
 
         // Step 1: Set values for input neurons
         for (let i = 0; i < this.inputLayer.length; i++) {
             this.inputLayer[i].setValue(cleanInputData[i]);
         }
+        // Note: inputBiasNeuron always has a value of 1.0 (set in constructor)
 
-        // Step 2: Get values from input neurons
-        let inputValues = this.inputLayer.map(neuron => neuron.getValue());
+        // Step 2: Get values from input neurons (including bias neuron)
+        let inputValues = new Array(this.inputLayer.length + 1); // +1 for bias
+        for (let i = 0; i < this.inputLayer.length; i++) {
+            inputValues[i] = this.inputLayer[i].getValue();
+        }
+        inputValues[this.inputLayer.length] = this.inputBiasNeuron.getValue(); // Add bias neuron value (always 1.0)
 
-        // Step 3: Compute hidden layer activations
-        let hiddenOutputs = this.hiddenLayer.map(neuron => neuron.activate(inputValues));
+        // Step 3: Compute hidden layer activations (including bias neuron)
+        let hiddenOutputs = new Array(this.hiddenLayer.length + 1); // +1 for bias
+        for (let i = 0; i < this.hiddenLayer.length; i++) {
+            hiddenOutputs[i] = this.hiddenLayer[i].activate(inputValues);
+        }
+        hiddenOutputs[this.hiddenLayer.length] = this.hiddenBiasNeuron.getValue(); // Add bias neuron value (always 1.0)
 
         // Step 4: Compute output layer activations
-        let outputOutputs = this.outputLayer.map(neuron => neuron.activate(hiddenOutputs));
+        let outputOutputs = new Array(this.outputLayer.length);
+        for (let i = 0; i < this.outputLayer.length; i++) {
+            outputOutputs[i] = this.outputLayer[i].activate(hiddenOutputs);
+        }
 
         return outputOutputs;
     }
@@ -133,6 +163,10 @@ function buildNetwork() {
 
         // If validation passes, create the network
         nn = new NeuralNetwork(numInputs, numHidden, numOutputs);
+
+        // Log the network structure for debugging
+        console.log(`Created network with ${nn.numInputs} inputs, ${nn.numHidden} hidden, ${nn.outputLayer.length} outputs`);
+
         renderInputs(numInputs);
         renderWeights();
         renderVisualization();
@@ -235,19 +269,22 @@ document.getElementById('run-forward').onclick = async function() {
         inputs.push(isNaN(val) ? 0 : val);
     }
 
-    // Set values for input neurons
-    for (let i = 0; i < nn.inputLayer.length; i++) {
-        nn.inputLayer[i].setValue(inputs[i]);
-    }
+    // Use the network's forward method to compute outputs
+    const outputs = nn.forward(inputs);
 
-    // Get values from input neurons
-    let inputValues = nn.inputLayer.map(neuron => neuron.getValue());
+    // For animation purposes, we need to calculate intermediate values
+    // Get values from input neurons (including bias neuron)
+    let inputValues = new Array(nn.inputLayer.length + 1); // +1 for bias
+    for (let i = 0; i < nn.inputLayer.length; i++) {
+        inputValues[i] = nn.inputLayer[i].getValue();
+    }
+    inputValues[nn.inputLayer.length] = nn.inputBiasNeuron.getValue(); // Add bias neuron value (always 1.0)
 
     // Compute hidden layer activations
-    let hiddenOutputs = nn.hiddenLayer.map(neuron => neuron.activate(inputValues));
-
-    // Compute output layer activations
-    let outputs = nn.outputLayer.map(neuron => neuron.activate(hiddenOutputs));
+    let hiddenOutputs = new Array(nn.hiddenLayer.length);
+    for (let i = 0; i < nn.hiddenLayer.length; i++) {
+        hiddenOutputs[i] = nn.hiddenLayer[i].activate(inputValues);
+    }
 
     // Animate
     await animateForward(inputs, hiddenOutputs, outputs);
@@ -255,32 +292,43 @@ document.getElementById('run-forward').onclick = async function() {
     // Display results
     outputValues.innerHTML = outputs.map((v, i) => `Output ${i}: <b>${v.toFixed(4)}</b>`).join('<br>');
     outputSection.style.display = '';
+
+    // Log the output for debugging
+    console.log(`Output: ${outputs[0].toFixed(16)}`);
 };
 
 // Animation function for the forward pass
 // Note: hiddenOutputs parameter is kept for consistency with the forward pass calculation
 // but is not used in the animation itself
-async function animateForward(inputs, _hiddenOutputs, outputs) {
+async function animateForward(inputs, hiddenOutputs, outputs) {
     // Animate input neurons
     renderVisualization(inputs, []);
     highlightNeurons(0);
     await sleep(500);
+
     // Animate input->hidden connections
     highlightConnections(0, 1);
     await sleep(400);
+
     // Animate hidden neurons
     renderVisualization(inputs, []);
     highlightNeurons(1);
     await sleep(500);
+
     // Animate hidden->output connections
     highlightConnections(1, 2);
     await sleep(400);
+
     // Animate output neurons
     renderVisualization(inputs, outputs);
     highlightNeurons(2);
     await sleep(500);
+
     // Remove highlights
     renderVisualization(inputs, outputs);
+
+    // Log intermediate values for debugging
+    console.log(`Hidden outputs: ${hiddenOutputs.map(v => v.toFixed(6)).join(', ')}`);
 }
 
 function sleep(ms) {
@@ -292,6 +340,9 @@ function highlightNeurons(layerIdx) {
     if (!svg) return;
     let circles = svg.querySelectorAll('circle.neuron');
     let layers = [nn.numInputs, nn.numHidden, nn.numOutputs];
+    let regularNeuronCount = layers.reduce((a, b) => a + b, 0);
+
+    // First handle regular neurons
     let idx = 0;
     for (let l = 0; l < layers.length; l++) {
         for (let n = 0; n < layers[l]; n++) {
@@ -302,6 +353,21 @@ function highlightNeurons(layerIdx) {
             }
             idx++;
         }
+    }
+
+    // Handle bias neurons (they're after all regular neurons in the DOM)
+    if (layerIdx === 0) {
+        // Highlight input bias neuron when input layer is active
+        circles[regularNeuronCount].classList.add('highlight-neuron');
+        circles[regularNeuronCount + 1].classList.remove('highlight-neuron');
+    } else if (layerIdx === 1) {
+        // Highlight hidden bias neuron when hidden layer is active
+        circles[regularNeuronCount].classList.remove('highlight-neuron');
+        circles[regularNeuronCount + 1].classList.add('highlight-neuron');
+    } else {
+        // No bias neurons to highlight for output layer
+        circles[regularNeuronCount].classList.remove('highlight-neuron');
+        circles[regularNeuronCount + 1].classList.remove('highlight-neuron');
     }
 }
 
@@ -327,16 +393,29 @@ function highlightConnections(fromLayer, toLayer) {
     let svg = visualization.querySelector('svg');
     if (!svg) return;
     let lines = svg.querySelectorAll('line.connection');
-    // Input->Hidden: lines 0..(numInputs*numHidden-1), Hidden->Output: rest
+    // Input->Hidden: lines 0..(numInputs*numHidden-1)
+    // Input bias->Hidden: lines (numInputs*numHidden)..(numInputs*numHidden+numHidden-1)
+    // Hidden->Output: lines (numInputs*numHidden+numHidden)..(numInputs*numHidden+numHidden+numHidden*numOutputs-1)
+    // Hidden bias->Output: rest
     let numInputs = nn.numInputs, numHidden = nn.numHidden, numOutputs = nn.numOutputs;
+
+    let regularInputToHidden = numInputs * numHidden;
+    let biasInputToHidden = numHidden;
+    let regularHiddenToOutput = numHidden * numOutputs;
+    let biasHiddenToOutput = numOutputs;
+
     let start = 0, end = 0;
+
     if (fromLayer === 0 && toLayer === 1) {
+        // Regular input to hidden connections + bias input to hidden
         start = 0;
-        end = numInputs * numHidden;
+        end = regularInputToHidden + biasInputToHidden;
     } else if (fromLayer === 1 && toLayer === 2) {
-        start = numInputs * numHidden;
-        end = start + numHidden * numOutputs;
+        // Regular hidden to output connections + bias hidden to output
+        start = regularInputToHidden + biasInputToHidden;
+        end = regularInputToHidden + biasInputToHidden + regularHiddenToOutput + biasHiddenToOutput;
     }
+
     for (let i = 0; i < lines.length; i++) {
         if (i >= start && i < end) {
             lines[i].classList.add('highlight-connection');
@@ -349,13 +428,15 @@ function highlightConnections(fromLayer, toLayer) {
 
 function renderVisualization(inputs = [], outputs = []) {
     // Draw a simple SVG network
-    let w = 400, h = 250;
+    let w = 400, h = 300; // Increased height to accommodate bias neurons
     let svg = `<svg width="${w}" height="${h}">
 `;
     let layers = [nn.numInputs, nn.numHidden, nn.numOutputs];
     let xStep = w / (layers.length + 1);
-    let ySteps = layers.map(n => h / (n + 1));
+    let ySteps = layers.map(n => h / (n + 2)); // +2 to leave room for bias neurons
     let positions = [];
+
+    // Calculate positions for regular neurons
     for (let l = 0; l < layers.length; l++) {
         let arr = [];
         for (let n = 0; n < layers[l]; n++) {
@@ -366,20 +447,39 @@ function renderVisualization(inputs = [], outputs = []) {
         }
         positions.push(arr);
     }
+
+    // Add positions for bias neurons (at the bottom of each layer)
+    let biasPositions = [
+        { x: xStep, y: ySteps[0] * (layers[0] + 1) }, // Input bias
+        { x: xStep * 2, y: ySteps[1] * (layers[1] + 1) }, // Hidden bias
+    ];
+
     // Draw connections
-    // Input->Hidden
+    // Input->Hidden (including bias)
     for (let i = 0; i < positions[0].length; i++) {
         for (let j = 0; j < positions[1].length; j++) {
             svg += `<line class='connection' x1='${positions[0][i].x}' y1='${positions[0][i].y}' x2='${positions[1][j].x}' y2='${positions[1][j].y}' />`;
         }
     }
-    // Hidden->Output
+
+    // Input bias->Hidden
+    for (let j = 0; j < positions[1].length; j++) {
+        svg += `<line class='connection bias-connection' x1='${biasPositions[0].x}' y1='${biasPositions[0].y}' x2='${positions[1][j].x}' y2='${positions[1][j].y}' stroke-dasharray='4' />`;
+    }
+
+    // Hidden->Output (including bias)
     for (let i = 0; i < positions[1].length; i++) {
         for (let j = 0; j < positions[2].length; j++) {
             svg += `<line class='connection' x1='${positions[1][i].x}' y1='${positions[1][i].y}' x2='${positions[2][j].x}' y2='${positions[2][j].y}' />`;
         }
     }
-    // Draw neurons
+
+    // Hidden bias->Output
+    for (let j = 0; j < positions[2].length; j++) {
+        svg += `<line class='connection bias-connection' x1='${biasPositions[1].x}' y1='${biasPositions[1].y}' x2='${positions[2][j].x}' y2='${positions[2][j].y}' stroke-dasharray='4' />`;
+    }
+
+    // Draw regular neurons
     for (let l = 0; l < layers.length; l++) {
         for (let n = 0; n < layers[l]; n++) {
             let val = '';
@@ -388,6 +488,16 @@ function renderVisualization(inputs = [], outputs = []) {
             svg += `<circle class='neuron' cx='${positions[l][n].x}' cy='${positions[l][n].y}' r='16'/><text x='${positions[l][n].x}' y='${positions[l][n].y+5}' text-anchor='middle' font-size='12'>${val}</text>`;
         }
     }
+
+    // Draw bias neurons (with different style)
+    for (let i = 0; i < 2; i++) { // Only input and hidden layers have bias neurons
+        svg += `<circle class='neuron bias-neuron' cx='${biasPositions[i].x}' cy='${biasPositions[i].y}' r='16' fill='#ffcc80' stroke='#ef6c00'/><text x='${biasPositions[i].x}' y='${biasPositions[i].y+5}' text-anchor='middle' font-size='12'>1.0</text>`;
+    }
+
+    // Add labels for bias neurons
+    svg += `<text x='${biasPositions[0].x}' y='${biasPositions[0].y+30}' text-anchor='middle' font-size='12'>Input Bias</text>`;
+    svg += `<text x='${biasPositions[1].x}' y='${biasPositions[1].y+30}' text-anchor='middle' font-size='12'>Hidden Bias</text>`;
+
     svg += '</svg>';
     visualization.innerHTML = `<div class='network'>${svg}</div>`;
 }
@@ -458,9 +568,12 @@ function parseTrainingData(csvContent) {
 
             // Validate that we have valid data
             if (inputs.length > 0 && expectedOutputs.length > 0) {
+                // Make sure we only use the first 3 inputs (RGB values)
+                const rgbInputs = inputs.slice(0, 3);
+
                 // Add to parsed data
                 parsedData.push({
-                    inputs,
+                    inputs: rgbInputs,
                     expectedOutputs
                 });
             }
@@ -603,7 +716,7 @@ function testNetwork(network, testData) {
         const inputs = data.inputs.map(val => isNaN(val) ? 0 : val); // Handle NaN values
         const expectedOutputs = data.expectedOutputs.map(val => isNaN(val) ? 0 : val); // Handle NaN values
 
-        // Run forward pass
+        // Run forward pass using the network's forward method
         const actualOutputs = network.forward(inputs);
 
         // Find which class has the highest value
@@ -613,8 +726,8 @@ function testNetwork(network, testData) {
         // Format the inputs for display, replacing NaN with 0
         const formattedInputs = inputs.map(v => isNaN(v) ? "0.00" : v.toFixed(2));
 
-        // Log the result
-        let resultLine = `Input: [${formattedInputs.join(', ')}] | Expected: ${expectedClass} | Actual: ${actualClass}`;
+        // Log the result - only show the first 3 inputs (RGB values) as that's what we expect
+        let resultLine = `Input: [${formattedInputs.slice(0, 3).join(', ')}] | Expected: ${expectedClass} | Actual: ${actualClass}`;
 
         // Check if prediction was correct
         if (expectedClass === actualClass) {
@@ -658,9 +771,9 @@ function trainNetwork() {
     const resultsContent = document.getElementById('results-content');
     resultsContent.innerHTML += `<div class="info">Training the network...</div>`;
 
-    // Train the network
+    // Train the network - use same parameters as Java implementation
     const learningRate = 0.1;
-    const epochs = 1000;
+    const epochs = 1000; // Same as Java implementation
 
     // Implement proper backpropagation
     let totalError = 0;
@@ -677,25 +790,8 @@ function trainNetwork() {
             const inputs = data.inputs;
             const expectedOutputs = data.expectedOutputs;
 
-            // Set values for input neurons
-            for (let i = 0; i < trainingNetwork.inputLayer.length; i++) {
-                trainingNetwork.inputLayer[i].setValue(inputs[i]);
-            }
-
-            // Get values from input neurons
-            const inputValues = trainingNetwork.inputLayer.map(neuron => neuron.getValue());
-
-            // Compute hidden layer activations
-            const hiddenOutputs = [];
-            for (let i = 0; i < trainingNetwork.hiddenLayer.length; i++) {
-                hiddenOutputs[i] = trainingNetwork.hiddenLayer[i].activate(inputValues);
-            }
-
-            // Compute output layer activations
-            const actualOutputs = [];
-            for (let i = 0; i < trainingNetwork.outputLayer.length; i++) {
-                actualOutputs[i] = trainingNetwork.outputLayer[i].activate(hiddenOutputs);
-            }
+            // Get actual outputs using the forward method
+            const actualOutputs = trainingNetwork.forward(inputs);
 
             // Calculate error
             let error = 0;
@@ -714,6 +810,10 @@ function trainNetwork() {
                 outputDeltas[i] = (target - output) * output * (1 - output);
             }
 
+            // Get input values and hidden outputs from the forward pass
+            const inputValues = [...trainingNetwork.inputLayer.map(neuron => neuron.getValue()), trainingNetwork.inputBiasNeuron.getValue()];
+            const hiddenOutputs = [...trainingNetwork.hiddenLayer.map(neuron => neuron.activate(inputValues)), trainingNetwork.hiddenBiasNeuron.getValue()];
+
             // 2. Calculate hidden layer deltas
             const hiddenDeltas = [];
             for (let i = 0; i < trainingNetwork.hiddenLayer.length; i++) {
@@ -726,20 +826,20 @@ function trainNetwork() {
 
             // 3. Update output layer weights
             for (let i = 0; i < trainingNetwork.outputLayer.length; i++) {
-                for (let j = 0; j < trainingNetwork.hiddenLayer.length; j++) {
-                    trainingNetwork.outputLayer[i].weights[j] += learningRate * outputDeltas[i] * hiddenOutputs[j];
+                for (let j = 0; j < trainingNetwork.hiddenLayer.length + 1; j++) { // +1 for bias
+                    const hiddenOutput = j < trainingNetwork.hiddenLayer.length ?
+                        hiddenOutputs[j] : trainingNetwork.hiddenBiasNeuron.getValue();
+                    trainingNetwork.outputLayer[i].weights[j] += learningRate * outputDeltas[i] * hiddenOutput;
                 }
-                // Update bias weight
-                trainingNetwork.outputLayer[i].weights[trainingNetwork.hiddenLayer.length] += learningRate * outputDeltas[i];
             }
 
             // 4. Update hidden layer weights
             for (let i = 0; i < trainingNetwork.hiddenLayer.length; i++) {
-                for (let j = 0; j < trainingNetwork.inputLayer.length; j++) {
-                    trainingNetwork.hiddenLayer[i].weights[j] += learningRate * hiddenDeltas[i] * inputs[j];
+                for (let j = 0; j < trainingNetwork.inputLayer.length + 1; j++) { // +1 for bias
+                    const inputValue = j < trainingNetwork.inputLayer.length ?
+                        inputs[j] : trainingNetwork.inputBiasNeuron.getValue();
+                    trainingNetwork.hiddenLayer[i].weights[j] += learningRate * hiddenDeltas[i] * inputValue;
                 }
-                // Update bias weight
-                trainingNetwork.hiddenLayer[i].weights[trainingNetwork.inputLayer.length] += learningRate * hiddenDeltas[i];
             }
         }
 
@@ -784,6 +884,9 @@ function updateVisualizationWithTrainedNetwork() {
     // Show the input section
     inputSection.style.display = '';
     weightsSection.style.display = '';
+
+    // Log the network structure for debugging
+    console.log(`Network structure: ${nn.numInputs} inputs, ${nn.numHidden} hidden, ${nn.outputLayer.length} outputs`);
 }
 
 // Animation state variables
@@ -828,9 +931,9 @@ async function animateForwardAndBackprop() {
     // Store animation data
     animationData = { inputs, expectedOutputs };
 
-    // Create animation steps
+    // Create animation steps - only show the first 3 inputs (RGB values)
     backpropAnimation.innerHTML += `
-        <div class="animation-step" id="step-1">Step 1: Input values [${inputs.map(v => v.toFixed(2)).join(', ')}]</div>
+        <div class="animation-step" id="step-1">Step 1: Input values [${inputs.slice(0, 3).map(v => v.toFixed(2)).join(', ')}]</div>
         <div class="animation-step" id="step-2">Step 2: Forward pass through hidden layer</div>
         <div class="animation-step" id="step-3">Step 3: Forward pass through output layer</div>
         <div class="animation-step" id="step-4">Step 4: Calculate output error</div>
@@ -883,15 +986,13 @@ async function runAnimationStep(step) {
             // Highlight input neurons
             highlightNeurons(0);
 
-            // Set values for input neurons
-            for (let i = 0; i < trainingNetwork.inputLayer.length; i++) {
-                trainingNetwork.inputLayer[i].setValue(inputs[i]);
-            }
+            // Set values for input neurons using the forward method
+            trainingNetwork.forward(inputs);
             break;
 
         case 2: // Forward pass through hidden layer
-            // Get values from input neurons
-            const inputValues = trainingNetwork.inputLayer.map(neuron => neuron.getValue());
+            // Get values from input neurons (including bias neuron)
+            const inputValues = [...trainingNetwork.inputLayer.map(neuron => neuron.getValue()), trainingNetwork.inputBiasNeuron.getValue()];
 
             // Compute hidden layer activations
             const hiddenOutputs = [];
@@ -914,7 +1015,7 @@ async function runAnimationStep(step) {
             // Make sure we have hidden outputs
             if (!animationData.hiddenOutputs) {
                 // Calculate them if they don't exist
-                const inputValues = trainingNetwork.inputLayer.map(neuron => neuron.getValue());
+                const inputValues = [...trainingNetwork.inputLayer.map(neuron => neuron.getValue()), trainingNetwork.inputBiasNeuron.getValue()];
                 const hiddenOutputs = [];
                 for (let i = 0; i < trainingNetwork.hiddenLayer.length; i++) {
                     hiddenOutputs[i] = trainingNetwork.hiddenLayer[i].activate(inputValues);
@@ -922,10 +1023,13 @@ async function runAnimationStep(step) {
                 animationData.hiddenOutputs = hiddenOutputs;
             }
 
+            // Add bias neuron output
+            const hiddenWithBias = [...animationData.hiddenOutputs, trainingNetwork.hiddenBiasNeuron.getValue()];
+
             // Compute output layer activations
             const actualOutputs = [];
             for (let i = 0; i < trainingNetwork.outputLayer.length; i++) {
-                actualOutputs[i] = trainingNetwork.outputLayer[i].activate(animationData.hiddenOutputs);
+                actualOutputs[i] = trainingNetwork.outputLayer[i].activate(hiddenWithBias);
             }
 
             // Store actual outputs in animation data

@@ -88,7 +88,7 @@ Die Implementierung basiert auf einer objektorientierten Struktur mit drei Haupt
 
 1. **Neuron**: Repräsentiert ein einzelnes Neuron mit Gewichten und Aktivierungsfunktion
 2. **NeuralNetwork**: Verwaltet die Netzwerkarchitektur und -operationen
-3. **Main**: Steuert den Programmablauf und die Datenverarbeitung
+3. **Main**: Steuert den Programmablauf und die Datenverarbeitung. Diese Klasse wurde bewusst einfach und kompakt gehalten, um die Verständlichkeit für Anfänger zu erhöhen.
 
 ### Klasse Neuron
 
@@ -103,7 +103,7 @@ Jedes Neuron in der versteckten und Ausgabeschicht hat einen zusätzlichen Bias-
 
 Die `NeuralNetwork`-Klasse verwaltet die drei Schichten des Netzwerks und implementiert die folgenden Hauptfunktionen:
 
-- **forward()**: Berechnet die Ausgabe des Netzwerks für gegebene Eingabedaten
+- **forward()**: Berechnet die Ausgabe des Netzwerks für gegebene Eingabedaten. Diese Methode validiert zunächst die Eingabedaten, setzt dann die Werte für die Eingabeneuronen, berechnet die Aktivierungen der versteckten Schicht und schließlich die Aktivierungen der Ausgabeschicht.
 - **train()**: Trainiert das Netzwerk mit Trainingsdaten über mehrere Epochen
 - **backpropagate()**: Passt die Gewichte basierend auf dem Fehler an
 - **testNetwork()**: Evaluiert die Leistung des Netzwerks auf Testdaten
@@ -117,6 +117,12 @@ Die Trainingsdaten werden aus CSV-Dateien geladen, die folgendes Format haben:
 
 Beispiel: `1;0;0;\t1;0;0;0` repräsentiert eine rote Ampel mit RGB-Werten (1,0,0) und der Klasse [1,0,0,0].
 
+Die Datenverarbeitung wurde in der Main-Klasse durch folgende Methoden implementiert:
+
+- **loadTrainingData()**: Lädt Trainingsdaten aus einer CSV-Datei und konvertiert sie in ein Format, das vom neuronalen Netzwerk verarbeitet werden kann
+- **loadWeights()**: Lädt vortrainierte Gewichte aus einer CSV-Datei, um das Netzwerk zu initialisieren
+- **saveWeights()**: Speichert die trainierten Gewichte in einer CSV-Datei für spätere Verwendung
+
 ### Visualisierung
 
 Zur Visualisierung des Netzwerks wurde eine webbasierte Benutzeroberfläche implementiert, die folgende Funktionen bietet:
@@ -126,7 +132,7 @@ Zur Visualisierung des Netzwerks wurde eine webbasierte Benutzeroberfläche impl
 - Animation des Forward-Pass-Prozesses
 - Visualisierung der Gewichte und Neuronenaktivierungen
 
-Die Visualisierung ermöglicht ein besseres Verständnis der internen Abläufe des neuronalen Netzwerks und unterstützt den Lernprozess.
+Die Visualisierung ermöglicht ein besseres Verständnis der internen Abläufe des neuronalen Netzwerks und unterstützt den Lernprozess. Die JavaScript-Implementierung des Forward-Pass-Algorithmus wurde sorgfältig mit der Java-Implementierung synchronisiert, um konsistente Ergebnisse zu gewährleisten. Insbesondere wurde die Behandlung von Bias-Neuronen in beiden Implementierungen vereinheitlicht, wobei Bias-Neuronen als separate Neuronen mit einem konstanten Eingabewert von 1.0 implementiert wurden.
 
 # Ergebnisse
 
@@ -152,63 +158,74 @@ Um die korrekte Funktionsweise des neuronalen Netzwerks zu demonstrieren, wird h
 
 Wir nehmen folgende Gewichte an (aus der vereinfachten Gewichtsdatei):
 
-**Hidden Layer Gewichte (inkl. Bias):**
+**Hidden Layer Gewichte:**
 ```
-Neuron 1: [-0.081, 0.08, -0.04]   // Gewichte für Input1, Input2, Input3
-Neuron 2: [0.06, 0.02, -0.003]     // Gewichte für Input1, Input2, Input3
-Neuron 3: [-0.01, 0.003, -0.09]    // Gewichte für Input1, Input2, Input3
-BiasNeuron: [0.08, -0.09, -0.05]
+Neuron 1: [-0.081, 0.08, -0.04, 0.08]   // Gewichte für Input1, Input2, Input3, InputBias
+Neuron 2: [0.06, 0.02, -0.003, -0.09]   // Gewichte für Input1, Input2, Input3, InputBias
+Neuron 3: [-0.01, 0.003, -0.09, -0.05]  // Gewichte für Input1, Input2, Input3, InputBias
 ```
 
-**Output Layer Gewichte (inkl. Bias):**
+**Output Layer Gewichte:**
 ```
-Output 1 (Rot): [-0.008, 0.01, 0.01, 2.9E-4]     // Gewichte für Hidden1, Hidden2, Hidden3, Bias
-Output 2 (Gelb): [0.06, -0.06, -0.027, -0.01]     // Gewichte für Hidden1, Hidden2, Hidden3, Bias
-Output 3 (Grün): [0.04, 0.06, 0.08, 0.08]         // Gewichte für Hidden1, Hidden2, Hidden3, Bias
-Output 4 (Aus): [-0.08, 0.06, 0.09, -0.001]       // Gewichte für Hidden1, Hidden2, Hidden3, Bias
+Output 1 (Rot): [-0.008, 0.01, 0.01, 2.9E-4]     // Gewichte für Hidden1, Hidden2, Hidden3, HiddenBias
+Output 2 (Gelb): [0.06, -0.06, -0.027, -0.01]    // Gewichte für Hidden1, Hidden2, Hidden3, HiddenBias
+Output 3 (Grün): [0.04, 0.06, 0.08, 0.08]        // Gewichte für Hidden1, Hidden2, Hidden3, HiddenBias
+Output 4 (Aus): [-0.08, 0.06, 0.09, -0.001]      // Gewichte für Hidden1, Hidden2, Hidden3, HiddenBias
 ```
 
 ### Schritt 1: Eingabewerte setzen
 Eingabewerte: [1, 0, 0]
+Bias-Neuron-Wert: 1.0 (konstant)
 
 ### Schritt 2: Berechnung der versteckten Schicht
 
 **Neuron 1 der versteckten Schicht:**
-Gewichtete Summe = (1 * -0.081) + (0 * 0.08) + (0 * -0.04) + (-0.04) = -0.081 - 0.04 = -0.121
-Aktivierung (Sigmoid) = 1 / (1 + e^(0.121)) = 1 / (1 + 1.129) = 1 / 2.129 = 0.470
+Eingabewerte mit Bias: [1, 0, 0, 1]
+Gewichtete Summe = (1 * -0.081) + (0 * 0.08) + (0 * -0.04) + (1 * 0.08) = -0.081 + 0.08 = -0.001
+Aktivierung (Sigmoid) = 1 / (1 + e^(0.001)) = 1 / (1 + 1.001) = 1 / 2.001 = 0.500
 
 **Neuron 2 der versteckten Schicht:**
-Gewichtete Summe = (1 * 0.06) + (0 * 0.02) + (0 * -0.003) + (-0.003) = 0.06 - 0.003 = 0.057
-Aktivierung (Sigmoid) = 1 / (1 + e^(-0.057)) = 1 / (1 + 0.945) = 1 / 1.945 = 0.514
+Eingabewerte mit Bias: [1, 0, 0, 1]
+Gewichtete Summe = (1 * 0.06) + (0 * 0.02) + (0 * -0.003) + (1 * -0.09) = 0.06 - 0.09 = -0.03
+Aktivierung (Sigmoid) = 1 / (1 + e^(0.03)) = 1 / (1 + 1.030) = 1 / 2.030 = 0.492
 
 **Neuron 3 der versteckten Schicht:**
-Gewichtete Summe = (1 * -0.01) + (0 * 0.003) + (0 * -0.09) + (-0.09) = -0.01 - 0.09 = -0.100
-Aktivierung (Sigmoid) = 1 / (1 + e^(0.100)) = 1 / (1 + 1.105) = 1 / 2.105 = 0.475
+Eingabewerte mit Bias: [1, 0, 0, 1]
+Gewichtete Summe = (1 * -0.01) + (0 * 0.003) + (0 * -0.09) + (1 * -0.05) = -0.01 - 0.05 = -0.06
+Aktivierung (Sigmoid) = 1 / (1 + e^(0.06)) = 1 / (1 + 1.062) = 1 / 2.062 = 0.485
 
-Ausgabe der versteckten Schicht: [0.470, 0.514, 0.475]
+Ausgabe der versteckten Schicht: [0.500, 0.492, 0.485]
+Bias-Neuron-Wert für die versteckte Schicht: 1.0 (konstant)
 
 ### Schritt 3: Berechnung der Ausgabeschicht
 
 **Ausgabeneuron 1 (Rot):**
-Gewichtete Summe = (0.470 * -0.008) + (0.514 * 0.01) + (0.475 * 0.01) + (2.9E-4) = -0.00376 + 0.00514 + 0.00475 + 0.00029 = 0.00642
-Aktivierung (Sigmoid) = 1 / (1 + e^(-0.00642)) = 1 / (1 + 0.994) = 1 / 1.994 = 0.502
+Eingabewerte mit Bias: [0.500, 0.492, 0.485, 1.0]
+Gewichtete Summe = (0.500 * -0.008) + (0.492 * 0.01) + (0.485 * 0.01) + (1.0 * 2.9E-4) = -0.004 + 0.00492 + 0.00485 + 0.00029 = 0.00606
+Aktivierung (Sigmoid) = 1 / (1 + e^(-0.00606)) = 1 / (1 + 0.994) = 1 / 1.994 = 0.502
 
 **Ausgabeneuron 2 (Gelb):**
-Gewichtete Summe = (0.470 * 0.06) + (0.514 * -0.06) + (0.475 * -0.027) + (-0.01) = 0.0282 - 0.03084 - 0.012825 - 0.01 = -0.025465
-Aktivierung (Sigmoid) = 1 / (1 + e^(0.025465)) = 1 / (1 + 1.026) = 1 / 2.026 = 0.494
+Eingabewerte mit Bias: [0.500, 0.492, 0.485, 1.0]
+Gewichtete Summe = (0.500 * 0.06) + (0.492 * -0.06) + (0.485 * -0.027) + (1.0 * -0.01) = 0.03 - 0.02952 - 0.013095 - 0.01 = -0.022615
+Aktivierung (Sigmoid) = 1 / (1 + e^(0.022615)) = 1 / (1 + 1.023) = 1 / 2.023 = 0.494
 
 **Ausgabeneuron 3 (Grün):**
-Gewichtete Summe = (0.470 * 0.04) + (0.514 * 0.06) + (0.475 * 0.08) + (0.08) = 0.0188 + 0.03084 + 0.038 + 0.08 = 0.16764
-Aktivierung (Sigmoid) = 1 / (1 + e^(-0.16764)) = 1 / (1 + 0.846) = 1 / 1.846 = 0.542
+Eingabewerte mit Bias: [0.500, 0.492, 0.485, 1.0]
+Gewichtete Summe = (0.500 * 0.04) + (0.492 * 0.06) + (0.485 * 0.08) + (1.0 * 0.08) = 0.02 + 0.02952 + 0.0388 + 0.08 = 0.16832
+Aktivierung (Sigmoid) = 1 / (1 + e^(-0.16832)) = 1 / (1 + 0.845) = 1 / 1.845 = 0.542
 
 **Ausgabeneuron 4 (Aus):**
-Gewichtete Summe = (0.470 * -0.08) + (0.514 * 0.06) + (0.475 * 0.09) + (-0.001) = -0.0376 + 0.03084 + 0.04275 - 0.001 = 0.03499
-Aktivierung (Sigmoid) = 1 / (1 + e^(-0.03499)) = 1 / (1 + 0.966) = 1 / 1.966 = 0.509
+Eingabewerte mit Bias: [0.500, 0.492, 0.485, 1.0]
+Gewichtete Summe = (0.500 * -0.08) + (0.492 * 0.06) + (0.485 * 0.09) + (1.0 * -0.001) = -0.04 + 0.02952 + 0.04365 - 0.001 = 0.03217
+Aktivierung (Sigmoid) = 1 / (1 + e^(-0.03217)) = 1 / (1 + 0.968) = 1 / 1.968 = 0.508
 
 ### Schritt 4: Ergebnis interpretieren
-Ausgabewerte: [0.502, 0.494, 0.542, 0.509]
+Ausgabewerte: [0.502, 0.494, 0.542, 0.508]
 
 Die höchste Aktivierung hat das dritte Ausgabeneuron (Grün) mit 0.542. Dies entspricht nicht der erwarteten Klasse (Rot), was darauf hinweist, dass das Netzwerk noch nicht trainiert ist.
+
+### Hinweis zur Implementierung
+In unserer Implementierung werden Bias-Neuronen als separate Neuronen mit einem konstanten Eingabewert von 1.0 behandelt. Dies entspricht der üblichen Praxis in neuronalen Netzwerken und ermöglicht eine einheitliche Behandlung aller Neuronen im Netzwerk. Die Bias-Neuronen haben eigene Gewichte zu den Neuronen der nächsten Schicht, genau wie reguläre Neuronen. Diese Implementierung wurde sowohl in Java als auch in JavaScript konsistent umgesetzt, um identische Ergebnisse in beiden Umgebungen zu gewährleisten.
 
 ### Schritt 5: Training und Backpropagation
 Durch Backpropagation werden die Gewichte angepasst, um den Fehler zu minimieren. Wir verwenden das gleiche Beispiel [1,0,0] mit der erwarteten Ausgabe [1,0,0,0] (Rot) und eine Lernrate von 0.1.
@@ -216,12 +233,12 @@ Durch Backpropagation werden die Gewichte angepasst, um den Fehler zu minimieren
 #### 1. Berechnung des Fehlers für jedes Ausgabeneuron
 
 Erwartete Ausgabe: [1, 0, 0, 0]
-Tatsächliche Ausgabe: [0.502, 0.494, 0.542, 0.509]
+Tatsächliche Ausgabe: [0.502, 0.494, 0.542, 0.508]
 
 Fehler für Ausgabeneuron 1 (Rot): 1 - 0.502 = 0.498
 Fehler für Ausgabeneuron 2 (Gelb): 0 - 0.494 = -0.494
 Fehler für Ausgabeneuron 3 (Grün): 0 - 0.542 = -0.542
-Fehler für Ausgabeneuron 4 (Aus): 0 - 0.509 = -0.509
+Fehler für Ausgabeneuron 4 (Aus): 0 - 0.508 = -0.508
 
 #### 2. Berechnung der Deltas für die Ausgabeschicht
 
@@ -231,7 +248,7 @@ Sigmoid-Ableitung(x) = x * (1 - x)
 Delta für Ausgabeneuron 1: 0.498 * 0.502 * (1 - 0.502) = 0.498 * 0.502 * 0.498 = 0.124
 Delta für Ausgabeneuron 2: -0.494 * 0.494 * (1 - 0.494) = -0.494 * 0.494 * 0.506 = -0.123
 Delta für Ausgabeneuron 3: -0.542 * 0.542 * (1 - 0.542) = -0.542 * 0.542 * 0.458 = -0.134
-Delta für Ausgabeneuron 4: -0.509 * 0.509 * (1 - 0.509) = -0.509 * 0.509 * 0.491 = -0.127
+Delta für Ausgabeneuron 4: -0.508 * 0.508 * (1 - 0.508) = -0.508 * 0.508 * 0.492 = -0.127
 
 #### 3. Berechnung der Deltas für die versteckte Schicht
 
@@ -240,22 +257,22 @@ Für jedes Neuron in der versteckten Schicht berechnen wir ein Delta basierend a
 Delta_hidden = Sigmoid-Ableitung(Ausgabe_hidden) * Summe(Delta_output * Gewicht_zum_hidden)
 
 Für Neuron 1 der versteckten Schicht:
-Sigmoid-Ableitung(0.470) = 0.470 * (1 - 0.470) = 0.470 * 0.530 = 0.249
+Sigmoid-Ableitung(0.500) = 0.500 * (1 - 0.500) = 0.500 * 0.500 = 0.250
 Summe = (0.124 * -0.008) + (-0.123 * 0.06) + (-0.134 * 0.04) + (-0.127 * -0.08)
       = -0.001 - 0.007 - 0.005 + 0.010 = -0.003
-Delta_hidden1 = 0.249 * -0.003 = -0.001
+Delta_hidden1 = 0.250 * -0.003 = -0.001
 
 Für Neuron 2 der versteckten Schicht:
-Sigmoid-Ableitung(0.514) = 0.514 * (1 - 0.514) = 0.514 * 0.486 = 0.250
+Sigmoid-Ableitung(0.492) = 0.492 * (1 - 0.492) = 0.492 * 0.508 = 0.250
 Summe = (0.124 * 0.01) + (-0.123 * -0.06) + (-0.134 * 0.06) + (-0.127 * 0.06)
       = 0.001 + 0.007 - 0.008 - 0.008 = -0.008
 Delta_hidden2 = 0.250 * -0.008 = -0.002
 
 Für Neuron 3 der versteckten Schicht:
-Sigmoid-Ableitung(0.475) = 0.475 * (1 - 0.475) = 0.475 * 0.525 = 0.249
+Sigmoid-Ableitung(0.485) = 0.485 * (1 - 0.485) = 0.485 * 0.515 = 0.250
 Summe = (0.124 * 0.01) + (-0.123 * -0.027) + (-0.134 * 0.08) + (-0.127 * 0.09)
       = 0.001 + 0.003 - 0.011 - 0.011 = -0.018
-Delta_hidden3 = 0.249 * -0.018 = -0.004
+Delta_hidden3 = 0.250 * -0.018 = -0.005
 
 #### 4. Aktualisierung der Gewichte
 
@@ -263,26 +280,26 @@ Delta_hidden3 = 0.249 * -0.018 = -0.004
 Neues Gewicht = Altes Gewicht + (Lernrate * Delta * Eingabe)
 
 Für Ausgabeneuron 1 (Rot):
-Neues Gewicht zu Hidden1 = -0.008 + (0.1 * 0.124 * 0.470) = -0.008 + 0.006 = -0.002
-Neues Gewicht zu Hidden2 = 0.01 + (0.1 * 0.124 * 0.514) = 0.01 + 0.006 = 0.016
-Neues Gewicht zu Hidden3 = 0.01 + (0.1 * 0.124 * 0.475) = 0.01 + 0.006 = 0.016
-Neuer Bias = 2.9E-4 + (0.1 * 0.124 * 1) = 0.00029 + 0.0124 = 0.01269
+Neues Gewicht zu Hidden1 = -0.008 + (0.1 * 0.124 * 0.500) = -0.008 + 0.006 = -0.002
+Neues Gewicht zu Hidden2 = 0.01 + (0.1 * 0.124 * 0.492) = 0.01 + 0.006 = 0.016
+Neues Gewicht zu Hidden3 = 0.01 + (0.1 * 0.124 * 0.485) = 0.01 + 0.006 = 0.016
+Neues Gewicht zu HiddenBias = 2.9E-4 + (0.1 * 0.124 * 1.0) = 0.00029 + 0.0124 = 0.01269
 
 Für Ausgabeneuron 2 (Gelb):
-Neues Gewicht zu Hidden1 = 0.06 + (0.1 * -0.123 * 0.470) = 0.06 - 0.006 = 0.054
-Neues Gewicht zu Hidden2 = -0.06 + (0.1 * -0.123 * 0.514) = -0.06 - 0.006 = -0.066
-Neues Gewicht zu Hidden3 = -0.027 + (0.1 * -0.123 * 0.475) = -0.027 - 0.006 = -0.033
-Neuer Bias = -0.01 + (0.1 * -0.123 * 1) = -0.01 - 0.0123 = -0.0223
+Neues Gewicht zu Hidden1 = 0.06 + (0.1 * -0.123 * 0.500) = 0.06 - 0.006 = 0.054
+Neues Gewicht zu Hidden2 = -0.06 + (0.1 * -0.123 * 0.492) = -0.06 - 0.006 = -0.066
+Neues Gewicht zu Hidden3 = -0.027 + (0.1 * -0.123 * 0.485) = -0.027 - 0.006 = -0.033
+Neues Gewicht zu HiddenBias = -0.01 + (0.1 * -0.123 * 1.0) = -0.01 - 0.0123 = -0.0223
 
 (Weitere Gewichtsaktualisierungen für Ausgabeneuronen 3 und 4 folgen dem gleichen Muster)
 
 **Aktualisierung der Gewichte in der versteckten Schicht:**
 
 Für Neuron 1 der versteckten Schicht:
-Neues Gewicht zu Input1 = -0.081 + (0.1 * -0.001 * 1) = -0.081 - 0.0001 = -0.0811
-Neues Gewicht zu Input2 = 0.08 + (0.1 * -0.001 * 0) = 0.08 + 0 = 0.08
-Neues Gewicht zu Input3 = -0.04 + (0.1 * -0.001 * 0) = -0.04 + 0 = -0.04
-Neuer Bias = -0.04 + (0.1 * -0.001 * 1) = -0.04 - 0.0001 = -0.0401
+Neues Gewicht zu Input1 = -0.081 + (0.1 * -0.001 * 1.0) = -0.081 - 0.0001 = -0.0811
+Neues Gewicht zu Input2 = 0.08 + (0.1 * -0.001 * 0.0) = 0.08 + 0 = 0.08
+Neues Gewicht zu Input3 = -0.04 + (0.1 * -0.001 * 0.0) = -0.04 + 0 = -0.04
+Neues Gewicht zu InputBias = 0.08 + (0.1 * -0.001 * 1.0) = 0.08 - 0.0001 = 0.0799
 
 (Weitere Gewichtsaktualisierungen für versteckte Neuronen 2 und 3 folgen dem gleichen Muster)
 
@@ -335,13 +352,13 @@ Im Vergleich zu optimierten Machine-Learning-Bibliotheken wie TensorFlow oder Py
 
 ### Stärken der Implementierung
 
-1. **Einfachheit und Verständlichkeit**: Die Implementierung verwendet eine klare, objektorientierte Struktur mit nur drei Hauptklassen (Neuron, NeuralNetwork, Main), was das Verständnis des Codes erleichtert.
+1. **Einfachheit und Verständlichkeit**: Die Implementierung verwendet eine klare, objektorientierte Struktur mit nur drei Hauptklassen (Neuron, NeuralNetwork, Main), was das Verständnis des Codes erleichtert. Besonders die Main-Klasse wurde bewusst einfach und kompakt gehalten, um Anfängern den Einstieg zu erleichtern.
 
 2. **Flexibilität der Netzwerkarchitektur**: Die Anzahl der Neuronen in jeder Schicht kann bei der Initialisierung frei gewählt werden, was Experimente mit verschiedenen Netzwerkgrößen ermöglicht.
 
-3. **Visualisierung**: Die webbasierte Visualisierung bietet einen intuitiven Einblick in die Funktionsweise des neuronalen Netzwerks und unterstützt das Verständnis der komplexen Prozesse.
+3. **Visualisierung**: Die webbasierte Visualisierung bietet einen intuitiven Einblick in die Funktionsweise des neuronalen Netzwerks und unterstützt das Verständnis der komplexen Prozesse. Die Synchronisierung zwischen Java- und JavaScript-Implementierung gewährleistet konsistente Ergebnisse.
 
-4. **Datenverwaltung**: Die Implementierung unterstützt das Laden von Trainings- und Gewichtsdaten aus CSV-Dateien sowie das Speichern trainierter Gewichte, was die Wiederverwendbarkeit fördert.
+4. **Datenverwaltung**: Die Implementierung unterstützt das Laden von Trainings- und Gewichtsdaten aus CSV-Dateien sowie das Speichern trainierter Gewichte, was die Wiederverwendbarkeit fördert. Die Methoden wurden bewusst einfach und verständlich implementiert.
 
 5. **Reproduzierbarkeit**: Die detaillierte Dokumentation der Berechnungsschritte und die klare Struktur des Codes ermöglichen es anderen Entwicklern, die Implementierung nachzuvollziehen und zu reproduzieren, ohne Rücksprache mit den ursprünglichen Entwicklern halten zu müssen.
 
@@ -359,9 +376,9 @@ Im Vergleich zu optimierten Machine-Learning-Bibliotheken wie TensorFlow oder Py
 
 Die entwickelte Implementierung eines künstlichen neuronalen Netzwerks erfüllt erfolgreich die grundlegenden Anforderungen für die Klassifikation von Eingabedaten, wie am Beispiel der Ampelfarben demonstriert. Die objektorientierte Struktur und die webbasierte Visualisierung bieten einen guten Einstieg in das Verständnis neuronaler Netzwerke.
 
-Die Implementierung eignet sich gut für Lehr- und Lernzwecke, da sie die grundlegenden Konzepte neuronaler Netzwerke demonstriert, ohne durch komplexe Bibliotheken oder fortgeschrittene Techniken abzulenken. Die klare Trennung zwischen Neuron, Netzwerk und Anwendungslogik fördert das Verständnis der einzelnen Komponenten.
+Die Implementierung eignet sich besonders gut für Lehr- und Lernzwecke, da sie die grundlegenden Konzepte neuronaler Netzwerke demonstriert, ohne durch komplexe Bibliotheken oder fortgeschrittene Techniken abzulenken. Die klare Trennung zwischen Neuron, Netzwerk und Anwendungslogik fördert das Verständnis der einzelnen Komponenten. Besonders die Main-Klasse wurde bewusst einfach und kompakt gehalten, um Anfängern den Einstieg zu erleichtern.
 
-Die detaillierte Dokumentation der mathematischen Berechnungen im Forward-Pass und im Backpropagation-Algorithmus ermöglicht es, die Funktionsweise des neuronalen Netzwerks Schritt für Schritt nachzuvollziehen, was besonders für Lernende wertvoll ist.
+Die detaillierte Dokumentation der mathematischen Berechnungen im Forward-Pass und im Backpropagation-Algorithmus ermöglicht es, die Funktionsweise des neuronalen Netzwerks Schritt für Schritt nachzuvollziehen, was besonders für Lernende wertvoll ist. Die Synchronisierung zwischen der Java- und JavaScript-Implementierung gewährleistet konsistente Ergebnisse und ermöglicht ein tieferes Verständnis der Algorithmen.
 
 Für zukünftige Erweiterungen wäre die Integration moderner Techniken wie verschiedene Aktivierungsfunktionen, fortgeschrittene Optimierungsalgorithmen und Unterstützung für komplexere Netzwerkarchitekturen sinnvoll. Auch eine umfassendere Validierungsstrategie mit separaten Test- und Validierungsdaten würde die Bewertung der Netzwerkleistung verbessern.
 
@@ -394,16 +411,18 @@ Für zukünftige Erweiterungen wäre die Integration moderner Techniken wie vers
 |     Neuron     |       | NeuralNetwork  |       |      Main      |
 +----------------+       +----------------+       +----------------+
 | - weights[]    |       | - inputLayer[] |       | - main()       |
-| - value        |<----->| - hiddenLayer[]|       | - TrainingData |
-| - isInputNeuron|       | - outputLayer[]|       |   class        |
-+----------------+       +----------------+       +----------------+
-| + Neuron()     |       | + forward()    |
-| + Neuron(int)  |       | + train()      |
-| + activate()   |       | + backpropagate()|
-| + setValue()   |       | + testNetwork()|
-| + getValue()   |       | + setWeights() |
-| + sigmoid()    |       | + getWeights() |
-+----------------+       +----------------+
+| - value        |<----->| - hiddenLayer[]|       | - loadTrainingData()|
+| - isInputNeuron|       | - outputLayer[]|       | - loadWeights()|
+| - isBiasNeuron |       | - inputBiasNeuron|     | - saveWeights()|
++----------------+       | - hiddenBiasNeuron|    | - testSimpleNetwork()|
+| + Neuron()     |       +----------------+       | - TrainingData |
+| + Neuron(int)  |       | + forward()    |       |   class        |
+| + activate()   |       | + train()      |       +----------------+
+| + setValue()   |       | + backpropagate()|
+| + getValue()   |       | + testNetwork()|
+| + sigmoid()    |       | + setWeights() |
++----------------+       | + getWeights() |
+                         +----------------+
 ```
 
 ## B. Beispiel für Trainings- und Testdaten
@@ -422,16 +441,20 @@ Für zukünftige Erweiterungen wäre die Integration moderner Techniken wie vers
 ```
 # Format: layers;numInputs;numHidden;numOutputs
 layers;3;3;4
-# Hidden Layer Gewichte (inkl. Bias)
+# Hidden Layer Gewichte
 -0.081; 0.08; -0.04;
 0.06; 0.02; -0.003;
 -0.01; 0.003; -0.09;
+# Hidden Layer Bias Gewichte
+0.08; -0.09; -0.05;
 ;;;
-# Output Layer Gewichte (inkl. Bias)
--0.008; 0.01; 0.01; 2.9E-4
-0.06; -0.06; -0.027; -0.01
-0.04; 0.06; 0.08; 0.08
--0.08; 0.06; 0.09; -0.001
+# Output Layer Gewichte
+-0.008; 0.01; 0.01;
+0.06; -0.06; -0.027;
+0.04; 0.06; 0.08;
+-0.08; 0.06; 0.09;
+# Output Layer Bias Gewichte
+2.9E-4; -0.01; 0.08; -0.001
 ```
 
 ## D. Anleitung zur Reproduktion
@@ -453,13 +476,15 @@ Um das neuronale Netzwerk selbst auszuführen und zu testen, folgen Sie diesen S
    - Speichern Sie diese als `KW17_weights_trafficlights_classification_simplified.csv` im Projektverzeichnis
 
 5. **Ausführung**:
-   - Kompilieren und starten Sie die `Main`-Klasse
+   - Kompilieren Sie die Java-Dateien mit dem Befehl `javac *.java`
+   - Starten Sie das Programm mit dem Befehl `java Main`
    - Das Programm lädt die Trainingsdaten, initialisiert das Netzwerk, führt das Training durch und gibt die Ergebnisse aus
 
 6. **Visualisierung** (optional):
    - Öffnen Sie den Ordner `Visualization`
    - Öffnen Sie die Datei `index.html` in einem Webbrowser
    - Laden Sie die Trainings- und Gewichtsdaten über die Benutzeroberfläche
+   - Experimentieren Sie mit verschiedenen Eingabewerten, um zu sehen, wie das Netzwerk reagiert
 
 ## E. Webquellen
 

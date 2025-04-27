@@ -73,10 +73,17 @@ form {
     opacity: 0.6;
     transition: stroke 0.2s, stroke-width 0.2s, opacity 0.2s;
 }
+.bias-connection {
+    stroke: #ef6c00;
+    opacity: 0.7;
+}
 .highlight-connection {
     stroke: #ff7043 !important;
     stroke-width: 4 !important;
     opacity: 1 !important;
+}
+.bias-neuron {
+    stroke-width: 2;
 }
 
 button {
