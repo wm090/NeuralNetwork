@@ -181,6 +181,10 @@ public class Main {
 
         double [] output = nn2.forward(data);
         System.out.println(output[0]);
+
+        System.out.println(nn2.inputLayer.length);
+        System.out.println(nn2.hiddenLayer.length);
+        System.out.println(nn2.outputLayer.length);
     }
 
     //inner class to hold training data (inputs and expected outputs)
