@@ -33,7 +33,7 @@ public class NeuralNetwork {
         hiddenLayer = new Neuron[numHidden];
         outputLayer = new Neuron[numOutputs];
 
-        // Create input neurons
+        // Create neurons
         for (int i = 0; i < numInputs; i++) {
             inputLayer[i] = new Neuron();
         }
@@ -118,18 +118,17 @@ public class NeuralNetwork {
     public void train(List<Main.TrainingData> trainingData, double learningRate, int epochs) {
         System.out.println("Starting training for " + epochs + " epochs...");
 
-        // Repeat the training process 'epochs' times
+        // epochs
         for (int epoch = 0; epoch < epochs; epoch++) {
             double totalError = 0;
 
-            // Go through each training example
             for (Main.TrainingData data : trainingData) {
                 
                 double[] inputs = data.getInputs(); 
                 double[] expectedOutputs = data.getExpectedOutputs(); 
                 double[] actualOutputs = forward(inputs); 
 
-                // Calculate how wrong the prediction was (error)
+                // error calculation
                 double error = 0;
                 for (int i = 0; i < actualOutputs.length; i++) {
                     // Square the difference between expected and actual
@@ -140,12 +139,6 @@ public class NeuralNetwork {
                 // Update the weights to make the network better
                 backpropagate(expectedOutputs, learningRate);
             }
-
-            // Print progress every 100 epochs
-            /*
-            if (epoch % 100 == 0 || epoch == epochs - 1) {
-                System.out.println("Epoch " + epoch + ", Error: " + totalError);
-            }*/
         }
 
         System.out.println("Training completed.");
@@ -179,75 +172,54 @@ public class NeuralNetwork {
         // Update weights in the output layer
         for (int i = 0; i < outputLayer.length; i++) {
             for (int j = 0; j < outputLayer[i].weights.length - 1; j++) {
-                // Update each weight: weight += learning_rate * delta * input
                 outputLayer[i].weights[j] += learningRate * outputDeltas[i] * lastHiddenOutputs[j];
             }
-            // Update bias weight (the extra weight)
+            // Update bias weight
             outputLayer[i].weights[outputLayer[i].weights.length - 1] += learningRate * outputDeltas[i];
         }
 
         // Update weights in the hidden layer
         for (int i = 0; i < hiddenLayer.length; i++) {
             for (int j = 0; j < hiddenLayer[i].weights.length - 1; j++) {
-                // Update each weight: weight += learning_rate * delta * input
-                // Use the stored lastInputs since that's what we used in the forward pass
                 hiddenLayer[i].weights[j] += learningRate * hiddenDeltas[i] * lastInputs[j];
             }
-            // Update bias weight (the extra weight)
             hiddenLayer[i].weights[hiddenLayer[i].weights.length - 1] += learningRate * hiddenDeltas[i];
         }
     }
 
-    public double testNetwork(List<Main.TrainingData> testData) {
+    public void testNetwork(List<Main.TrainingData> testData) {
         // Counter for correct predictions
         int correct = 0;
 
         // Test each example
         for (Main.TrainingData data : testData) {
-            // Get the inputs (RGB values)
             double[] inputs = data.getInputs();
-
-            // Get the expected outputs (correct traffic light class)
             double[] expectedOutputs = data.getExpectedOutputs();
-
-            // Get the network's prediction
             double[] actualOutputs = forward(inputs);
 
-            // Find which class has the highest value (the network's prediction)
             int expectedClass = findMaxIndex(expectedOutputs);
             int actualClass = findMaxIndex(actualOutputs);
 
-            // Print the result
             System.out.print("Input: ");
             for (double input : inputs) {
                 System.out.printf("%.2f ", input);
             }
             System.out.print("| Expected: " + expectedClass + " | Actual: " + actualClass);
 
-            // Check if the prediction was correct
             if (expectedClass == actualClass) {
-                System.out.println(" correct"); // Correct
+                System.out.println(" correct");
                 correct++;
             } else {
-                System.out.println(" wrong"); // Wrong
+                System.out.println(" wrong");
             }
         }
-
-        // Calculate and print the accuracy
-        double accuracy = (double) correct / testData.size() * 100;
-        System.out.printf("Accuracy: %.2f%% (%d/%d)\n", accuracy, correct, testData.size());
-
-        return accuracy;
     }
 
     public int findMaxIndex(double[] array) {
-        // Start with the first element
         int maxIndex = 0;
         double maxValue = array[0];
 
-        // Check each element
         for (int i = 1; i < array.length; i++) {
-            // If this element is bigger, remember it
             if (array[i] > maxValue) {
                 maxValue = array[i];
                 maxIndex = i;
